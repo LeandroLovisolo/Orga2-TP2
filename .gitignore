@@ -6,6 +6,7 @@ solucion/tools/tp2diff
 
 # Output de los tests
 solucion/data/test-in
+solucion/tests/diferencia.bmp
 
 # Sublime Text
 *.sublime-project
