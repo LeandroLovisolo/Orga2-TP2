@@ -1,21 +1,16 @@
-# Object files
+# Binarios y código objeto
 *.o
+solucion/bin
+solucion/src/tp2
+solucion/tools/tp2diff
 
-# Libraries
-*.lib
-*.a
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
+# Output de los tests
+solucion/data/test-in
 
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
+
+# Eclipse
+.project
+.cproject
