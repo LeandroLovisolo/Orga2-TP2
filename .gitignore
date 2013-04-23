@@ -8,6 +8,13 @@ solucion/tools/tp2diff
 solucion/data/test-in
 solucion/tests/diferencia.bmp
 
+# Output de Latex
+informe/*.pdf
+informe/*.aux
+informe/*.log
+informe/*.toc
+informe/*.gz
+
 # Sublime Text
 *.sublime-project
 *.sublime-workspace
