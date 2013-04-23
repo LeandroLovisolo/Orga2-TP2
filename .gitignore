@@ -8,7 +8,7 @@ solucion/tools/tp2diff
 solucion/data/test-in
 solucion/tests/diferencia.bmp
 
-# Output de Latex
+# Output de LaTeX
 informe/*.pdf
 informe/*.aux
 informe/*.log
