@@ -14,7 +14,7 @@ Grupo: **Panceta y Mozzarella**
 Alumnos
 -------
 
-Laouen Belloli (LU 134/11) [lao.facu@free.fr](lao.facu@free.fr)  
+Laouen Belloli (LU 134/11) [lao.facu@gmail.com](lao.facu@gmail.com)
 Leandro Lovisolo (LU 645/11) [leandro@leandro.me](leandro@leandro.me)  
 Lautaro José Petaccio  (LU 443/11) [lausuper@gmail.com](lausuper@gmail.com)
 
