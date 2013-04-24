@@ -1,7 +1,5 @@
 #include <stdio.h>
 
-typedef unsigned char uchar;
-
 void recortar_c (
 	unsigned char *src,
 	unsigned char *dst,
@@ -17,9 +15,36 @@ void recortar_c (
     // Copio esquina A
     for(int y = 0; y < tam; y++) {
         for(int x = 0; x < tam; x++) {
-            uchar* dst = (uchar*) dst_matrix + (tam + y) * dst_row_size + tam + x;
-            uchar* src = (uchar*) src_matrix + (y * src_row_size) + x;
-            *dst = *src;
+            int src = y * src_row_size + x;
+            int dst = (tam + y) * dst_row_size + tam + x;
+            (*dst_matrix)[dst] = (*src_matrix)[src];
         }
     }
+
+    // Copio esquina B
+    for(int y = 0; y < tam; y++) {
+        for(int x = 0; x < tam; x++) {
+            int src = y * src_row_size + tam + x;
+            int dst = (tam + y) * dst_row_size + x;
+            (*dst_matrix)[dst] = (*src_matrix)[src];
+        }
+    }
+
+    // Copio esquina C
+    for(int y = 0; y < tam; y++) {
+        for(int x = 0; x < tam; x++) {
+            int src = (tam + y) * src_row_size + x;
+            int dst = y * dst_row_size + tam + x;
+            (*dst_matrix)[dst] = (*src_matrix)[src];
+        }
+    }
+
+    // Copio esquina D
+    for(int y = 0; y < tam; y++) {
+        for(int x = 0; x < tam; x++) {
+            int src = (tam + y) * src_row_size + tam + x;
+            int dst = y * dst_row_size + x;
+            (*dst_matrix)[dst] = (*src_matrix)[src];
+        }
+    }    
 }
