@@ -1,4 +1,6 @@
-#include <stdlib.h>
+#include <stdio.h>
+
+typedef unsigned char uchar;
 
 void recortar_c (
 	unsigned char *src,
@@ -11,5 +13,13 @@ void recortar_c (
 ) {
 	unsigned char (*src_matrix)[src_row_size] = (unsigned char (*)[src_row_size]) src;
 	unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
-    memcpy(dst_matrix, src_matrix, dst_row_size * tam * 2);
+    
+    // Copio esquina A
+    for(int y = 0; y < tam; y++) {
+        for(int x = 0; x < tam; x++) {
+            uchar* dst = (uchar*) dst_matrix + (tam + y) * dst_row_size + tam + x;
+            uchar* src = (uchar*) src_matrix + (y * src_row_size) + x;
+            *dst = *src;
+        }
+    }
 }
