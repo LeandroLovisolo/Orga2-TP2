@@ -12,17 +12,17 @@ void recortar_c (
       
     for(int y = 0; y < tam; y++) {
         for(int x = 0; x < tam; x++) {
-            int a_src = src_row_size * y         + x;
-            int a_dst = dst_row_size * (tam + y) + tam + x;
+            int a_src = src_row_size * y             + x;
+            int a_dst = dst_row_size * (tam + y)     + tam + x;
 
-            int b_src = src_row_size * y         + tam + x;
-            int b_dst = dst_row_size * (tam + y) + x;
+            int b_src = src_row_size * y             + n - tam + x;
+            int b_dst = dst_row_size * (tam + y)     + x;
 
-            int c_src = src_row_size * (tam + y) + x;
-            int c_dst = dst_row_size * y         + tam + x;
-            
-            int d_src = src_row_size * (tam + y) + tam + x;
-            int d_dst = dst_row_size * y         + x;
+            int c_src = src_row_size * (m - tam + y) + x;
+            int c_dst = dst_row_size * y             + tam + x;
+                
+            int d_src = src_row_size * (m - tam + y) + n - tam + x;
+            int d_dst = dst_row_size * y             + x;
 
             (*dst_matrix)[a_dst] = (*src_matrix)[a_src];
             (*dst_matrix)[b_dst] = (*src_matrix)[b_src];
