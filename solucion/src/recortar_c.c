@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 void recortar_c (
 	unsigned char *src,
 	unsigned char *dst,
@@ -9,5 +11,5 @@ void recortar_c (
 ) {
 	unsigned char (*src_matrix)[src_row_size] = (unsigned char (*)[src_row_size]) src;
 	unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
-
+    memcpy(dst_matrix, src_matrix, dst_row_size * tam * 2);
 }
