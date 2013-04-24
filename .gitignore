@@ -22,3 +22,6 @@ informe/*.gz
 # Eclipse
 .project
 .cproject
+
+# BMPs de prueba en directorio src
+solucion/src/*.bmp
