@@ -1,50 +1,35 @@
 #include <stdio.h>
 
 void recortar_c (
-	unsigned char *src,
-	unsigned char *dst,
-	int m,
-	int n,
-	int src_row_size,
-	int dst_row_size,
-	int tam
+    unsigned char *src,
+    unsigned char *dst,
+    int m,
+    int n,
+    int src_row_size,
+    int dst_row_size,
+    int tam
 ) {
-	unsigned char (*src_matrix)[src_row_size] = (unsigned char (*)[src_row_size]) src;
-	unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
-    
-    // Copio esquina A
+    unsigned char (*src_matrix)[src_row_size] = (unsigned char (*)[src_row_size]) src;
+    unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
+      
     for(int y = 0; y < tam; y++) {
         for(int x = 0; x < tam; x++) {
-            int src = y * src_row_size + x;
-            int dst = (tam + y) * dst_row_size + tam + x;
-            (*dst_matrix)[dst] = (*src_matrix)[src];
+            int a_src = src_row_size * y         + x;
+            int a_dst = dst_row_size * (tam + y) + tam + x;
+
+            int b_src = src_row_size * y         + tam + x;
+            int b_dst = dst_row_size * (tam + y) + x;
+
+            int c_src = src_row_size * (tam + y) + x;
+            int c_dst = dst_row_size * y         + tam + x;
+            
+            int d_src = src_row_size * (tam + y) + tam + x;
+            int d_dst = dst_row_size * y         + x;
+
+            (*dst_matrix)[a_dst] = (*src_matrix)[a_src];
+            (*dst_matrix)[b_dst] = (*src_matrix)[b_src];
+            (*dst_matrix)[c_dst] = (*src_matrix)[c_src];
+            (*dst_matrix)[d_dst] = (*src_matrix)[d_src];
         }
     }
-
-    // Copio esquina B
-    for(int y = 0; y < tam; y++) {
-        for(int x = 0; x < tam; x++) {
-            int src = y * src_row_size + tam + x;
-            int dst = (tam + y) * dst_row_size + x;
-            (*dst_matrix)[dst] = (*src_matrix)[src];
-        }
-    }
-
-    // Copio esquina C
-    for(int y = 0; y < tam; y++) {
-        for(int x = 0; x < tam; x++) {
-            int src = (tam + y) * src_row_size + x;
-            int dst = y * dst_row_size + tam + x;
-            (*dst_matrix)[dst] = (*src_matrix)[src];
-        }
-    }
-
-    // Copio esquina D
-    for(int y = 0; y < tam; y++) {
-        for(int x = 0; x < tam; x++) {
-            int src = (tam + y) * src_row_size + tam + x;
-            int dst = y * dst_row_size + x;
-            (*dst_matrix)[dst] = (*src_matrix)[src];
-        }
-    }    
 }
