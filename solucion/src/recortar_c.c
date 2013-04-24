@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 void recortar_c (
     unsigned char *src,
     unsigned char *dst,
