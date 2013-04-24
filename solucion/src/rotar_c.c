@@ -11,8 +11,8 @@ void rotar_c (
     unsigned char (*dst_matrix)[dst_row_size] = (unsigned char (*)[dst_row_size]) dst;
     double eqCx = n/2; //Longitud / 2
     double eqCy = m/2; //Altura / 2
-    unsigned int cx = floor(eqCx); //Obtendo su parte entera
-    unsigned int cy = floor(eqCy); //Obtengo su parte entera
+    int cx = floor(eqCx); //Obtendo su parte entera
+    int cy = floor(eqCy); //Obtengo su parte entera
     //Recorro la imágen de destino y le voy colocando el píxel correspondiente
     for(int y=0;y<dst_row_size;y++) {
     	for(int x=0;x<dst_row_size;x++) {
