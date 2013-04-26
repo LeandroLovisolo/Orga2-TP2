@@ -5,7 +5,7 @@ solucion/src/tp2
 solucion/tools/tp2diff
 
 # Output de los tests
-solucion/data/test-in
+solucion/data/test-in/*.bmp
 
 # Output de LaTeX
 informe/*.pdf
