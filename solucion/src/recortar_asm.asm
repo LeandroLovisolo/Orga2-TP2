@@ -52,10 +52,23 @@ ciclo_y:
     xor r10, r10    ; r10 = x = 0
 
 ciclo_x:
+    ; Termino el ciclo x sólo si terminamos de recorrer la fila actual
     mov rax, [rbp + 16]         ; rax = tam
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     sub rax, r10                ; rax = tam - x
+    jz fin_ciclo_x
+
+    ; Compruebo si quedan más de 16 pixels por recorrer
     cmp eax, 16
-    jl menos_de_16_columnas
+    jge mas_de_16_columnas
+
+    ; Quedan menos de 16, retrocedo hasta que queden exactamente 16
+    mov rbx, 16                 ; rbx = 16
+    sub ebx, eax                ; rbx = 16 - (tam - x)
+    sub r10, rbx                ; r10 = x = x - [16 - (tam - x)]
+
+mas_de_16_columnas:
 
     ;;;;;;;;;;;;;;;
     ;; Esquina A ;;
@@ -96,11 +109,11 @@ ciclo_x:
     pop r9
     pop r8
 
-    add r10, 16
+    add r10, 16                 ; r10 = x = x + 16
     jmp ciclo_x
 
-menos_de_16_columnas:
-    inc r11
+fin_ciclo_x:
+    inc r11                     ; r11 = y = y + 1
     mov rax, [rbp + 16]         ; rax = tam
     mov rbx, r11
     cmp eax, ebx
