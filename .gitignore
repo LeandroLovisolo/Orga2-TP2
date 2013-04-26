@@ -6,6 +6,7 @@ solucion/tools/tp2diff
 
 # Output de los tests
 solucion/data/test-in/*.bmp
+solucion/data/test-in/test.in
 
 # Output de LaTeX
 informe/*.pdf
