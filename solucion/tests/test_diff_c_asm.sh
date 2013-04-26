@@ -51,10 +51,10 @@ do
 
 
 	# colorizar
-	$BINFILE -v -i c colorizar $file
-	$BINFILE -v -i asm colorizar $file
+	$BINFILE -v -i c colorizar $file 0.5
+	$BINFILE -v -i asm colorizar $file 0.5
 
-	$DIFF $DIFFFLAGS $file".colorizar.c.bmp" $file".colorizar.asm.bmp" 5
+	$DIFF $DIFFFLAGS $file".colorizar.alpha-0.50.c.bmp" $file".colorizar.alpha-0.50.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: colorizar"
@@ -66,7 +66,7 @@ do
 	$BINFILE -v -i c umbralizar $file 64 128 16
 	$BINFILE -v -i asm umbralizar $file 64 128 16
 
-	$DIFF $DIFFFLAGS $file".umbralizar.min-64.max-128.q-16.c.bmp" $file".umbralizar.min-64.max-128.q-16.asm.bmp" 0
+	$DIFF $DIFFFLAGS $file".umbralizar.min-64.max-128.q-16.c.bmp" $file".umbralizar.min-64.max-128.q-16.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: umbralizar"
@@ -75,7 +75,7 @@ do
 	$BINFILE -v -i c umbralizar $file 71 169 21
 	$BINFILE -v -i asm umbralizar $file 71 169 21
 
-	$DIFF $DIFFFLAGS $file".umbralizar.min-71.max-169.q-21.c.bmp" $file".umbralizar.min-71.max-169.q-21.asm.bmp" 0
+	$DIFF $DIFFFLAGS $file".umbralizar.min-71.max-169.q-21.c.bmp" $file".umbralizar.min-71.max-169.q-21.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: umbralizar"
@@ -87,7 +87,7 @@ do
 	$BINFILE -v -i c waves $file 1 1 64
 	$BINFILE -v -i asm waves $file 1 1 64
 
-	$DIFF $DIFFFLAGS $file".waves.x_scale-1.00.y_scale-1.00.g_scale-64.00.c.bmp" $file".waves.x_scale-1.00.y_scale-1.00.g_scale-64.00.asm.bmp" 0
+	$DIFF $DIFFFLAGS $file".waves.x_scale-1.00.y_scale-1.00.g_scale-64.00.c.bmp" $file".waves.x_scale-1.00.y_scale-1.00.g_scale-64.00.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: waves"
@@ -96,7 +96,7 @@ do
 	$BINFILE -v -i c waves $file 16 8 15
 	$BINFILE -v -i asm waves $file 16 8 15
 
-	$DIFF $DIFFFLAGS $file".waves.x_scale-16.00.y_scale-8.00.g_scale-15.00.c.bmp" $file".waves.x_scale-16.00.y_scale-8.00.g_scale-15.00.asm.bmp" 0
+	$DIFF $DIFFFLAGS $file".waves.x_scale-16.00.y_scale-8.00.g_scale-15.00.c.bmp" $file".waves.x_scale-16.00.y_scale-8.00.g_scale-15.00.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: waves"
@@ -105,7 +105,7 @@ do
 	$BINFILE -v -i c waves $file 7 13 11
 	$BINFILE -v -i asm waves $file 7 13 11
 
-	$DIFF $DIFFFLAGS $file".waves.x_scale-7.00.y_scale-13.00.g_scale-11.00.c.bmp" $file".waves.x_scale-7.00.y_scale-13.00.g_scale-11.00.asm.bmp" 0
+	$DIFF $DIFFFLAGS $file".waves.x_scale-7.00.y_scale-13.00.g_scale-11.00.c.bmp" $file".waves.x_scale-7.00.y_scale-13.00.g_scale-11.00.asm.bmp" 5
 	if [ $? != "0" ]; then
 		OKDIFF=0
 		echo "diferencias en filtro: waves"

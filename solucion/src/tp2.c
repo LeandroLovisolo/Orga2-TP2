@@ -183,10 +183,15 @@ void imprimir_ayuda ( ) {
 	printf ( "           Parámetros     : tamaño                                                                          \n" );
 	printf ( "           Ejemplo de uso : %s -i c recortar lena.bmp 100                                                   \n", nombre_programa );
 	printf ( "       * colorizar                                                                                          \n" );
-	printf ( "           Parámetros     : alpha : [0.0,  1.0]                                                          \n" );
+	printf ( "           Parámetros     : alpha : [0.0,  1.0]                                                             \n" );
+	printf ( "           Ejemplo de uso : %s -i c colorizar lena.bmp 0.5                                                  \n", nombre_programa );
 	printf ( "       * halftone                                                                                           \n" );
 	printf ( "       * rotar                                                                                              \n" );
 	printf ( "       * umbralizar                                                                                         \n" );
+	printf ( "           Parámetros     : min : [0, 255]                                                                  \n" );
+	printf ( "                            max : [0, 255]                                                                  \n" );
+	printf ( "                            q   : [0, 255]                                                                  \n" );
+	printf ( "           Ejemplo de uso : %s -i c umbralizar lena.bmp 64 128 16                                           \n", nombre_programa );
 	printf ( "       * waves                                                                                              \n" );
 	printf ( "           Parámetros     : x_scale : [0.0,  32.0]                                                          \n" );
 	printf ( "                            y_scale : [0.0,  32.0]                                                          \n" );
@@ -326,12 +331,14 @@ void aplicar_colorizar (int tiempo, int cant_iteraciones, const char *nomb_impl,
 		proceso((unsigned char*)src->imageData, (unsigned char*)dst->imageData, src->height, src->width, src->widthStep, dst->widthStep, alpha);
 	}
 
+	copiar_bordes_color((unsigned char*)src->imageData, (unsigned char*)dst->imageData, src->height, src->width, src->widthStep);
+
 	// Guardo imagen y libero las imagenes
 	char nomb_arch_salida[256];
 
 	memset(nomb_arch_salida, 0, 256);
 
-	sprintf(nomb_arch_salida, "%s.colorizar-%3.2f.%s.bmp", nomb_arch_entrada, alpha,  nomb_impl);
+	sprintf(nomb_arch_salida, "%s.colorizar.alpha-%3.2f.%s.bmp", nomb_arch_entrada, alpha, nomb_impl);
 
 	cvSaveImage(nomb_arch_salida, dst, NULL);
 

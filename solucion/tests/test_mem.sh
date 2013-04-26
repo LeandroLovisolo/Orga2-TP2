@@ -60,13 +60,13 @@ do
 
 
 	# colorizar
-	$VALGRIND $VALGRINDFLAGS $BINFILE -v -i c colorizar $file
+	$VALGRIND $VALGRINDFLAGS $BINFILE -v -i c colorizar $file 0.5
 	if [ $? != "0" ]; then
 		OKVALGRIND=0
 		echo "Error/es en el filtro: colorizar"
 	fi
 
-	$VALGRIND $VALGRINDFLAGS $BINFILE -v -i asm colorizar $file
+	$VALGRIND $VALGRINDFLAGS $BINFILE -v -i asm colorizar $file 0.5
 	if [ $? != "0" ]; then
 		OKVALGRIND=0
 		echo "Error/es en el filtro: colorizar"
@@ -126,6 +126,14 @@ do
 	if [ $? != "0" ]; then
 		OKVALGRIND=0
 		echo "Error/es en el filtro: waves"
+	fi
+
+
+	# rotar
+	$VALGRIND $VALGRINDFLAGS $BINFILE -v -i c rotar $file
+	if [ $? != "0" ]; then
+		OKVALGRIND=0
+		echo "Error/es en el filtro: rotar"
 	fi
 done < $TESTINFILE
 

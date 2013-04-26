@@ -5,7 +5,6 @@ CFLAGS = -ggdb -Wall -std=c99 -pedantic -m64
 ASMFLAGS = -felf64 -g -F dwarf
 OPENCV_LIB = `pkg-config --cflags --libs opencv`
 
-BUNDLEDIR = ../../tp2-bundle
 
 BIN = tp2
 BIN_DIR = ../bin
@@ -28,7 +27,7 @@ tp2.o: tp2.c
 	$(CC) $(CFLAGS) -c -o $@ $< $(OPENCV_LIB)
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $< -lm
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 %.o: %.asm
 	$(ASM) $(ASMFLAGS) -o $@ $<
@@ -39,14 +38,4 @@ clean:
 	rm -f $(OBJS)
 	rm -f ./$(BIN)
 	rm -f $(BIN_DIR)/$(BIN)
-
-bundle:
-	rm -rf $(BUNDLEDIR)
-	mkdir -p $(BUNDLEDIR)
-	cp ../../enunciado/tp2-enunciado.pdf versiones.txt $(BUNDLEDIR)
-	../../../deleter.py .. $(BUNDLEDIR)/solucion/zz
-	mkdir -p $(BUNDLEDIR)/solucion/bin
-	rmdir $(BUNDLEDIR)/solucion/zz
-	tar -czf $(BUNDLEDIR)/../tp2.tar.gz $(BUNDLEDIR)
-
 
