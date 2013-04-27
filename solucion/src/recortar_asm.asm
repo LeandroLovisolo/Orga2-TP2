@@ -37,10 +37,6 @@ recortar_asm:
     mov r14, rdx                ; r14 = m
     mov r15, rcx                ; r15 = n
 
-    ; push qword [rbp + 16]
-    ; call recortar_c
-    ; add rsp, 8
-
     xor r11, r11                ; r11 = y = 0
 
 ciclo_y:
