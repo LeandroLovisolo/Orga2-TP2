@@ -17,17 +17,12 @@
 ;   r9 = dst_row_size
 ;   rbp + 16 = tam
 
-extern recortar_c
-
 global recortar_asm
-
-extern printf
-section .data
-    msg: db "(%d, %d)", 10, 0
 
 section .text
 
 recortar_asm:
+
     push rbp
     mov rbp, rsp
     push rbx
@@ -37,21 +32,23 @@ recortar_asm:
     push r15
 
     ; Guardo los parámetros
-    mov r12, rdi    ; r12 = src
-    mov r13, rsi    ; r13 = dst
-    mov r14, rdx    ; r14 = m
-    mov r15, rcx    ; r15 = n
+    mov r12, rdi                ; r12 = src
+    mov r13, rsi                ; r13 = dst
+    mov r14, rdx                ; r14 = m
+    mov r15, rcx                ; r15 = n
 
     ; push qword [rbp + 16]
     ; call recortar_c
     ; add rsp, 8
 
-    xor r11, r11    ; r11 = y = 0
+    xor r11, r11                ; r11 = y = 0
 
 ciclo_y:
-    xor r10, r10    ; r10 = x = 0
+
+    xor r10, r10                ; r10 = x = 0
 
 ciclo_x:
+
     ; Termino el ciclo x sólo si terminamos de recorrer la fila actual
     mov rax, [rbp + 16]         ; rax = tam
     shl rax, 32                 ; Limpio parte alta de rax
@@ -162,25 +159,11 @@ mas_de_16_columnas:
     add rax, r10                ; eax = dst_row_size * y + x
     movdqu [r13 + rax], xmm0    ; [dst + (dst_row_size * y + x)] = xmm0
 
-    push r8
-    push r9
-    push r10
-    push r11
-    sub rsp, 8
-    mov rdi, msg
-    mov rsi, r10
-    mov rdx, r11
-    call printf
-    add rsp, 8
-    pop r11
-    pop r10
-    pop r9
-    pop r8
-
     add r10, 16                 ; r10 = x = x + 16
     jmp ciclo_x
 
 fin_ciclo_x:
+
     inc r11                     ; r11 = y = y + 1
     mov rax, [rbp + 16]         ; rax = tam
     mov rbx, r11
