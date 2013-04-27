@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 void recortar_c (
     unsigned char *src,
     unsigned char *dst,
@@ -20,7 +22,7 @@ void recortar_c (
 
             int c_src = src_row_size * (m - tam + y) + x;
             int c_dst = dst_row_size * y             + tam + x;
-                
+            
             int d_src = src_row_size * (m - tam + y) + n - tam + x;
             int d_dst = dst_row_size * y             + x;
 
