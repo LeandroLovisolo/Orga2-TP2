@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 void recortar_c (
     unsigned char *src,
     unsigned char *dst,
@@ -14,22 +12,10 @@ void recortar_c (
       
     for(int y = 0; y < tam; y++) {
         for(int x = 0; x < tam; x++) {
-            int a_src = src_row_size * y             + x;
-            int a_dst = dst_row_size * (tam + y)     + tam + x;
-
-            int b_src = src_row_size * y             + n - tam + x;
-            int b_dst = dst_row_size * (tam + y)     + x;
-
-            int c_src = src_row_size * (m - tam + y) + x;
-            int c_dst = dst_row_size * y             + tam + x;
-            
-            int d_src = src_row_size * (m - tam + y) + n - tam + x;
-            int d_dst = dst_row_size * y             + x;
-
-            (*dst_matrix)[a_dst] = (*src_matrix)[a_src];
-            (*dst_matrix)[b_dst] = (*src_matrix)[b_src];
-            (*dst_matrix)[c_dst] = (*src_matrix)[c_src];
-            (*dst_matrix)[d_dst] = (*src_matrix)[d_src];
+            dst_matrix[tam + y][tam + x] = src_matrix[y          ][x          ]; // A
+            dst_matrix[tam + y][x      ] = src_matrix[y          ][n - tam + x]; // B
+            dst_matrix[y      ][tam + x] = src_matrix[m - tam + y][x          ]; // C
+            dst_matrix[y      ][x      ] = src_matrix[m - tam + y][n - tam + x]; // D
         }
     }
 }
