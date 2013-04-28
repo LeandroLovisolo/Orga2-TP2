@@ -23,8 +23,11 @@ global colorizar_asm
 section .data
 
     align 16
-    mask_rrr_ggg_bbb: db 00, 03,  06,  255, 01, 04,  07,  255, 02, 05,  08,  255, 255, 255, 255, 255
-    mask_r_g_b:       db 00, 255, 255, 255, 04, 255, 255, 255, 08, 255, 255, 255, 255, 255, 255, 255
+    mask_rrr_ggg_bbb: db 0,   3,   6,   255, 1,   4,   7,   255, 2,   5,   8,   255, 255, 255, 255, 255
+    mask_r_g_b:       db 0,   255, 255, 255, 4,   255, 255, 255, 8,   255, 255, 255, 255, 255, 255, 255
+    mask_pxl2chn:     db 0,   255, 255, 255, 1,   255, 255, 255, 2,   255, 255, 255, 255, 255, 255, 255
+    mask_chn2pxl:     db 0,   4,   8,   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+    tupla_255:        db 255, 0,   0,   0,   255, 0,   0,   0,   255, 0,   0,   0,   0,   0,   0,   0
     uno:              dd 1.0
 
 section .text
@@ -181,42 +184,62 @@ phi_b_falso:
     subss xmm3, xmm0            ; xmm3 = 0000 0000 0000 (1.0 - alpha) = PhiB
 
     ; Guardo la tupla Phi = (PhiR, PhiG, PhiB) en xmm1 de la siguiente forma:
-    ; xmm1 = 0000 PhiB PhiG PhiR
+    ; xmm1 = 0000 PhiR PhiG PhiB
 
 tupla_phi:
 
+    pshufd xmm1, xmm1, 0xC6     ; xmm1 = 0000 PhiR 0000 0000
     pshufd xmm2, xmm2, 0xE4     ; xmm2 = 0000 0000 PhiG 0000
-    pshufd xmm3, xmm3, 0xC6     ; xmm3 = 0000 PhiB 0000 0000
-    addps xmm1, xmm2            ; xmm1 = 0000 0000 PhiG PhiR
-    addps xmm1, xmm3            ; xmm1 = 0000 PhiB PhiG PhiR
+    addps xmm1, xmm2            ; xmm1 = 0000 PhiR PhiG 0000
+    addps xmm1, xmm3            ; xmm1 = 0000 PhiR PhiG PhiB
 
     ;;;;;;;;;;;;;;;;;;;;;;;
     ;; Computar Phi: Fin ;;
     ;;;;;;;;;;;;;;;;;;;;;;;
 
-
-
-
-
-
+    ; Leo pixel actual
 
     mov rax, r8                 ; eax = src_row_size
     mov rbx, r11                ; ebx = y
     mul ebx                     ; eax = src_row_size * y
     add rax, r10                ; eax = src_row_size * y + x
+    movdqu xmm2, [rdi + rax]    ; xmm2 = [src + (src_row_size * y + x)]
 
-    movdqu xmm0, [rdi + rax]    ; xmm0 = [src + (src_row_size * y + x)]
+    ; Reordeno los canales y los convierto a floats
+
+    pshufb xmm2, [mask_pxl2chn] ; xmm2 = 0000 000R 000G 000B
+    cvtdq2ps xmm2, xmm2         ; xmm2 = 0000 Rsrc Gsrc Bsrc
+
+    ; Obtengo la tupla (PhiR * Rsrc, PhiG * Gsrc, PhiB * Bsrc)
+
+    mulps xmm2, xmm1            ; xmm2 = 0000 (PhiR * Rsrc) (PhiG * Gsrc) (PhiB * Bsrc)
+    cvtps2dq xmm2, xmm2         ; Convierto xmm2 a enteros
+
+    ; Obtengo la tupla (Rdst, Gdst, Bdst) con los valores para el pixel destino
+
+    movdqu xmm1, [tupla_255]    ; xmm1 = 0000 (0 0 0 255)  (0 0 0 255)  (0 0 0 255)
+    pminud xmm1, xmm2           ; xmm1 = 0000 (0 0 0 Rdst) (0 0 0 Gdst) (0 0 0 Bdst)
+
+    ; Armo el pixel destino
+
+    pshufb xmm2, [mask_chn2pxl] ; xmm2 = 0000 0000 0000 (0 Rdst Gdst Bdst)
+    movd ecx, xmm2
+
+    ; Escribo pixel destino
 
     mov rax, r9                 ; eax = dst_row_size
     mov rbx, r11                ; ebx = y
     mul ebx                     ; eax = dst_row_size * y
     add rax, r10                ; eax = dst_row_size * y + x
+    add [rsi + rax], ecx        ; [dst + (dst_row_size * y + x)] += ecx
 
-    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * y + x)] = xmm0
+    ; Iteración ciclo x
 
     add r10, 3                  ; r10 = x = x + 3
     cmp r10, 1503
     jle ciclo_x
+
+    ; Iteración ciclo y
 
     add r11, 1                  ; r11 = y = y + 1
     cmp r11, 501
