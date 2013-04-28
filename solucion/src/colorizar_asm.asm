@@ -27,7 +27,7 @@ section .data
     mask_r_g_b:       db 0,   255, 255, 255, 4,   255, 255, 255, 8,   255, 255, 255, 255, 255, 255, 255
     mask_pxl2chn:     db 0,   255, 255, 255, 1,   255, 255, 255, 2,   255, 255, 255, 255, 255, 255, 255
     mask_chn2pxl:     db 0,   4,   8,   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
-    tupla_255:        db 255, 0,   0,   0,   255, 0,   0,   0,   255, 0,   0,   0,   0,   0,   0,   0
+    tupla_255:        dd 255.0, 255.0, 255.0, 0
     uno:              dd 1.0
 
 section .text
@@ -87,7 +87,7 @@ ciclo_x:
     mul ebx                     ; eax = src_row_size * (y + 1)
     add rax, r10                ; eax = src_row_size * (y + 1) + x
     sub rax, 3                  ; eax = src_row_size * (y + 1) + x - 3
-    movdqu xmm1, [rdi + rax]    ; xmm1 = [src + (src_row_size * (y + 1) + x - 3)]    
+    movdqu xmm3, [rdi + rax]    ; xmm3 = [src + (src_row_size * (y + 1) + x - 3)]    
 
     ; Reordeno los bytes de la siguiente manera: 
     ; ____ ___R GBRG BRGB => 0000 0RRR 0GGG 0BBB
@@ -189,7 +189,7 @@ phi_b_falso:
 tupla_phi:
 
     pshufd xmm1, xmm1, 0xC6     ; xmm1 = 0000 PhiR 0000 0000
-    pshufd xmm2, xmm2, 0xE4     ; xmm2 = 0000 0000 PhiG 0000
+    pshufd xmm2, xmm2, 0xE1     ; xmm2 = 0000 0000 PhiG 0000
     addps xmm1, xmm2            ; xmm1 = 0000 PhiR PhiG 0000
     addps xmm1, xmm3            ; xmm1 = 0000 PhiR PhiG PhiB
 
@@ -213,17 +213,17 @@ tupla_phi:
     ; Obtengo la tupla (PhiR * Rsrc, PhiG * Gsrc, PhiB * Bsrc)
 
     mulps xmm2, xmm1            ; xmm2 = 0000 (PhiR * Rsrc) (PhiG * Gsrc) (PhiB * Bsrc)
-    cvtps2dq xmm2, xmm2         ; Convierto xmm2 a enteros
-
+    
     ; Obtengo la tupla (Rdst, Gdst, Bdst) con los valores para el pixel destino
 
-    movdqu xmm1, [tupla_255]    ; xmm1 = 0000 (0 0 0 255)  (0 0 0 255)  (0 0 0 255)
-    pminud xmm1, xmm2           ; xmm1 = 0000 (0 0 0 Rdst) (0 0 0 Gdst) (0 0 0 Bdst)
+    movdqu xmm1, [tupla_255]    ; xmm1 = 0000 255.0        255.0        255.0
+    minps xmm1, xmm2            ; xmm1 = 0000 Rdst         Gdst         Bdst
+    cvtps2dq xmm1, xmm1         ; xmm1 = 0000 (0 0 0 Rdst) (0 0 0 Gdst) (0 0 0 Bdst)
 
     ; Armo el pixel destino
 
-    pshufb xmm2, [mask_chn2pxl] ; xmm2 = 0000 0000 0000 (0 Rdst Gdst Bdst)
-    movd ecx, xmm2
+    pshufb xmm1, [mask_chn2pxl] ; xmm2 = 0000 0000 0000 (0 Rdst Gdst Bdst)
+    movd ecx, xmm1
 
     ; Escribo pixel destino
 
