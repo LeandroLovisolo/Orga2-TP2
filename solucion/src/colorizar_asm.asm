@@ -22,6 +22,7 @@ global colorizar_asm
 
 section .data
 
+    align 16
     mask_rrr_ggg_bbb: db 00, 03,  06,  255, 01, 04,  07,  255, 02, 05,  08,  255, 255, 255, 255, 255
     mask_r_g_b:       db 00, 255, 255, 255, 04, 255, 255, 255, 08, 255, 255, 255, 255, 255, 255, 255
     uno:              dd 1.0
