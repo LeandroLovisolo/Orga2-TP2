@@ -20,79 +20,49 @@
 
 global colorizar_asm
 
-extern printf
-
-section .data
-    pixels:  DB 01, 05, 09, 02, 06, 10, 03, 07, 11, 04, 08, 12, 20,  40,  60,  80
-    mask1:   DB 00, 03, 06, 09, 01, 04, 07, 10, 02, 05, 08, 11, 255, 255, 255, 255
-    mask2:   DB 00, 04, 08, 01, 05, 09, 02, 06, 10, 03, 07, 11, 255, 255, 255, 255
-    msg:     DB "%d ", 0
-    newline: DB 10, 0
-
 section .text
 
 colorizar_asm:
     push rbp
     mov rbp, rsp
     push rbx
-    sub rsp, 8
 
-    mov rbx, 0
-loop_1:
-    mov rdi, msg
-    xor rax, rax
-    mov al, [pixels + rbx]
-    mov rsi, rax
-    call printf
-    inc rbx
-    cmp rbx, 16
-    jl loop_1
+    shl r8, 32                  ; Limpio parte alta de r8
+    shr r8, 32
+    shl r9, 32                  ; Limpio parte alta de r9
+    shr r9, 32
 
-    mov rdi, newline
-    call printf
+    mov r11, 1                  ; r11 = y = 1
 
+ciclo_y:
 
-    movdqu xmm0, [pixels]
-    pshufb xmm0, [mask1]
-    movdqu [pixels], xmm0
+    mov r10, 3                  ; r10 = x = 3
 
+ciclo_x:
 
-    mov rbx, 0
-loop_2:
-    mov rdi, msg
-    xor rax, rax
-    mov al, [pixels + rbx]
-    mov rsi, rax
-    call printf
-    inc rbx
-    cmp rbx, 16
-    jl loop_2
+    mov rax, r8                 ; eax = src_row_size
+    mov rbx, r11                ; ebx = y
+    mul ebx                     ; eax = src_row_size * y
+    add rax, r10                ; eax = src_row_size * y + x
 
-    mov rdi, newline
-    call printf
+    movdqu xmm0, [rdi + rax]    ; xmmo0 = [src + (src_row_size * y + x)]
+
+    mov rax, r9                 ; eax = dst_row_size
+    mov rbx, r11                ; ebx = y
+    mul ebx                     ; eax = dst_row_size * y
+    add rax, r10                ; eax = dst_row_size * y + x
+
+    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * y + x)] = xmm0
+
+    add r10, 3                  ; r10 = x = x + 3
+    cmp r10, 1503
+    jle ciclo_x
 
 
-    movdqu xmm0, [pixels]
-    pshufb xmm0, [mask2]
-    movdqu [pixels], xmm0
+    add r11, 1                  ; r11 = y = y + 1
+    cmp r11, 501
+    jle ciclo_y
 
-
-    mov rbx, 0
-loop_3:
-    mov rdi, msg
-    xor rax, rax
-    mov al, [pixels + rbx]
-    mov rsi, rax
-    call printf
-    inc rbx
-    cmp rbx, 16
-    jl loop_3
-
-    mov rdi, newline
-    call printf
-
-
-    add rsp, 8
     pop rbx
     pop rbp
     ret
