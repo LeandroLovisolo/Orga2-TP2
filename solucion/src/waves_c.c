@@ -7,7 +7,7 @@ float sin_taylor (float x) {
 	float k 		= (int)(x/(2*pi));
 	float r 		= x - k*2*pi;
 	x 				= r - pi;
-	float y = x - ((x*x*x)/6) ;
+	float y = x - ((x*x*x)/6) +((x*x*x*x*x)/120) + ((x*x*x*x*x*x*x)/5040);
 }
 
 void waves_c (
