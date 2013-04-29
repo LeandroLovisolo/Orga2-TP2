@@ -71,10 +71,9 @@ umbralizar_asm:
     	movdqu xmm1, [rdi] ;Muevo 16 bytes o pixeles a xmm1
         ;Voy a desempaquetar los bytes para poder convertirlos a signed y realizar comparaciones de >
         movdqu xmm2, xmm1 ;Hago una copia en xmm2
-        movdqu xmm15, xmm1 ;Hago una copia en xmm13
+        movdqu xmm15, xmm1 ;Hago una copia de xmm1 para aplicarle la comparación y dejarla cómo máscara
         ;Dejo en xmm2 una máscara para ver cuales son iguales al min, esto se hace ya que no hago
         ; p < min y necesito saber cuales son >= min
-        ;Por lo tanto, cuando haga < voy a tener que filtrar los =
         pcmpeqb xmm15, xmm12 
         ;###################################################################################################################
         ;Desempaqueto los bytes que tengo a words para poder usar la comparación greater than
@@ -153,14 +152,15 @@ umbralizar_asm:
         cvttps2dq xmm14, xmm14 ;Convierto todo a int otra vez para empaquetarlo
         cvttps2dq xmm15, xmm15
         ;Acá hay que empaquetar sin signo! aunque así funciona bien 
-        packssdw xmm14, xmm15 ;empaqueto todo otra vez y lo dejo en xmm14 SIGNED!
+        ;packssdw xmm14, xmm15 ;empaqueto todo otra vez y lo dejo en xmm14 SIGNED!
+        packusdw xmm14, xmm15 ;Empaqueto unsigned!
         ;############################################################
         ;Trabajo con las words resultantes del desempaquetamiento high
         ;############################################################
         movdqu xmm15, xmm2 ;Hago una copia
         movdqu xmm10, xmm2
-        punpcklwd xmm15, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word
-        punpcklwd xmm10, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word
+        punpcklwd xmm15, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE BAJA)
+        punpckhwd xmm10, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE ALTA)
 
         ;Los convierto a sigle presition floats
         cvtdq2ps xmm15, xmm15 ;CVTDQ2PS—Convert Packed Dword Integers to Packed Single-Precision FP Values
@@ -178,8 +178,8 @@ umbralizar_asm:
         ;#############################
         ;Una vez truncados, los convierto otra vez a float para hacer la multiplicacion
         ;#############################
-        cvtdq2ps xmm14, xmm14
-        cvtdq2ps xmm15, xmm15 
+        cvtdq2ps xmm15, xmm15
+        cvtdq2ps xmm10, xmm10
         mulps xmm15, xmm3
         mulps xmm10, xmm3
         ;#############################
@@ -187,11 +187,13 @@ umbralizar_asm:
         ;#############################
         cvttps2dq xmm15, xmm15 ;Convierto todo a int otra vez para empaquetarlo
         cvttps2dq xmm10, xmm10
-        packssdw xmm15, xmm10 ;empaqueto todo otra vez y lo dejo en xmm15 SIGNED
+        ;packssdw xmm15, xmm10 ;empaqueto todo otra vez y lo dejo en xmm15 SIGNED
+        packusdw xmm15, xmm10 ;Empaqueto unsigned de double word a word
         ;###################################################################################################################
         ;Empaquetado y armado final de los bytes a colocar
         ;###################################################################################################################
-        packsswb xmm14, xmm15 ;Vuelvo a empaquetar dejando todo en bytes en xmm14 SIGENED
+       ; packsswb xmm14, xmm15 ;Vuelvo a empaquetar dejando todo en bytes en xmm14 SIGENED
+        packuswb xmm14, xmm15 ;Empaqueto unsigned
         pand xmm14, xmm13 ;Le aplico la máscara para el caso anteriormente creada
         paddusb xmm8, xmm14 ;Lo sumo al acumulador
         ;###################################################################################################################
