@@ -17,18 +17,18 @@
 ;   r9 = dst_row_size
 ;   xmm0 = alpha
 
-
 global colorizar_asm
 
 section .data
 
     align 16
-    mask_rrr_ggg_bbb: db 0,   3,   6,   255, 1,   4,   7,   255, 2,   5,   8,   255, 255, 255, 255, 255
-    mask_r_g_b:       db 0,   255, 255, 255, 4,   255, 255, 255, 8,   255, 255, 255, 255, 255, 255, 255
-    mask_pxl2chn:     db 0,   255, 255, 255, 1,   255, 255, 255, 2,   255, 255, 255, 255, 255, 255, 255
-    mask_chn2pxl:     db 0,   4,   8,   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
-    tupla_255:        dd 255.0, 255.0, 255.0, 0
-    uno:              dd 1.0
+    mask_ajuste_ultima_fila: db 7,   8,   9,   10,  11,  12,  13,  14,  15,  255, 255, 255, 255, 255, 255, 255
+    mask_rrr_ggg_bbb:        db 0,   3,   6,   255, 1,   4,   7,   255, 2,   5,   8,   255, 255, 255, 255, 255
+    mask_r_g_b:              db 0,   255, 255, 255, 4,   255, 255, 255, 8,   255, 255, 255, 255, 255, 255, 255
+    mask_pxl2chn:            db 0,   255, 255, 255, 1,   255, 255, 255, 2,   255, 255, 255, 255, 255, 255, 255
+    mask_chn2pxl:            db 0,   4,   8,   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+    tupla_255:               dd 255.0, 255.0, 255.0, 0
+    uno:                     dd 1.0
 
 section .text
 
@@ -60,6 +60,29 @@ ciclo_x:
     ;; Computar Phi: Inicio ;;
     ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+    ; Comienzo sin ajuste de última fila
+
+    xor rcx, rcx                ; rcx = offset = 0
+
+    ; Decido si estoy en la última fila
+
+    mov rax, r12                ; rax = m
+    sub rax, 2                  ; rax = m - 2
+    cmp r11, rax
+    jl obtener_vecinos          ; Salto si no estoy en la última fila (y < m - 2)
+
+    ; Estoy en la última fila - Decido si es es necesario el ajuste
+
+    mov rax, r13                ; eax = n
+    mov ebx, 3                  ; ebx = 3
+    mul ebx                     ; eax = 3 * n
+    sub rax, r10                ; eax = 3 * n - x
+    cmp rax, 13
+    jge obtener_vecinos         ; Salto si 3 * n - x < 13
+    mov rcx, 7                  ; rcx = offset = 7
+
+obtener_vecinos:
+
     ; Obtengo los tres vecinos superiores
 
     mov rax, r8                 ; eax = src_row_size
@@ -68,7 +91,8 @@ ciclo_x:
     mul ebx                     ; eax = src_row_size * (y - 1)
     add rax, r10                ; eax = src_row_size * (y - 1) + x
     sub rax, 3                  ; eax = src_row_size * (y - 1) + x - 3
-    movdqu xmm1, [rdi + rax]    ; xmm1 = [src + (src_row_size * (y - 1) + x - 3)]
+    sub rax, rcx                ; eax = src_row_size * (y - 1) + x - 3 - offset
+    movdqu xmm1, [rdi + rax]    ; xmm1 = [src + (src_row_size * (y - 1) + x - 3 - offset)]
 
     ; Obtengo pixel actual y vecinos a izquierda y derecha
 
@@ -77,7 +101,8 @@ ciclo_x:
     mul ebx                     ; eax = src_row_size * y
     add rax, r10                ; eax = src_row_size * y + x
     sub rax, 3                  ; eax = src_row_size * y + x - 3
-    movdqu xmm2, [rdi + rax]    ; xmm2 = [src + (src_row_size * y + x - 3)]
+    sub rax, rcx                ; eax = src_row_size * y + x - 3 - offset
+    movdqu xmm2, [rdi + rax]    ; xmm2 = [src + (src_row_size * y + x - 3 - offset)]
 
     ; Obtengo los tres vecinos inferiores
 
@@ -87,10 +112,22 @@ ciclo_x:
     mul ebx                     ; eax = src_row_size * (y + 1)
     add rax, r10                ; eax = src_row_size * (y + 1) + x
     sub rax, 3                  ; eax = src_row_size * (y + 1) + x - 3
-    movdqu xmm3, [rdi + rax]    ; xmm3 = [src + (src_row_size * (y + 1) + x - 3)]    
+    sub rax, rcx                ; eax = src_row_size * (y + 1) + x - 3 - offset
+    movdqu xmm3, [rdi + rax]    ; xmm3 = [src + (src_row_size * (y + 1) + x - 3 - offset)]    
+
+    ; Si hubo ajuste de fin de última fila, reacomodo los bytes de la siguiente forma:
+    ; RGBR GBRG B___ ____ => 0000 000R GBRG BRGB
+
+    cmp rcx, 0
+    je reordenar_bytes          ; Salto sólo si no hubo ajuste de fin de última fila
+    pshufb xmm1, [mask_ajuste_ultima_fila]
+    pshufb xmm2, [mask_ajuste_ultima_fila]
+    pshufb xmm3, [mask_ajuste_ultima_fila]    
 
     ; Reordeno los bytes de la siguiente manera: 
     ; ____ ___R GBRG BRGB => 0000 0RRR 0GGG 0BBB
+
+reordenar_bytes:
 
     pshufb xmm1, [mask_rrr_ggg_bbb]
     pshufb xmm2, [mask_rrr_ggg_bbb]
@@ -222,8 +259,8 @@ tupla_phi:
 
     ; Armo el pixel destino
 
-    pshufb xmm1, [mask_chn2pxl] ; xmm2 = 0000 0000 0000 (0 Rdst Gdst Bdst)
-    movd ecx, xmm1
+    pshufb xmm1, [mask_chn2pxl] ; xmm1 = 0000 0000 0000 (0 Rdst Gdst Bdst)
+    movd ecx, xmm1              ; ecx = 0 Rdst Gdst Bdst
 
     ; Escribo pixel destino
 
@@ -236,14 +273,21 @@ tupla_phi:
     ; Iteración ciclo x
 
     add r10, 3                  ; r10 = x = x + 3
-    cmp r10, 1503
-    jle ciclo_x
+    mov rax, r13                ; eax = n
+    mov ebx, 3                  ; ebx = 3
+    mul ebx                     ; eax = 3 * n
+    sub eax, 3                  ; eax = 3 * n - 3
+    and rax, 0x00000000FFFFFFFF ; Limpio parte alta de rax
+    cmp r10, rax
+    jl ciclo_x                  ; Termino el ciclo si x = 3 * n - 3
 
     ; Iteración ciclo y
 
     add r11, 1                  ; r11 = y = y + 1
-    cmp r11, 501
-    jle ciclo_y
+    mov rax, r12                ; rax = m
+    dec rax                     ; rax = m - 1
+    cmp r11, rax
+    jl ciclo_y                  ; Termino el ciclo si y = m - 1
 
     pop r13
     pop r12
