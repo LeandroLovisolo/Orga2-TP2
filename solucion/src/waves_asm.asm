@@ -28,7 +28,7 @@ global waves_asm
 
 section .rodata
 
-dos: 2.0, 2.0, 2.0, 2.0
+dos: DQ 2.0, 2.0, 2.0, 2.0
 pi: DD 3.14159265359, 3.14159265359, 3.14159265359, 3.14159265359
 ochenta: DD 80.0, 80.0, 80.0, 80.0
 
@@ -104,7 +104,7 @@ waves_asm:
 		
 		; desempaqueto de Byte a Word
 		MOVDQU xmm7,xmm5 		; hago una copia para el desempaquetamiento
-		XOR xmm9,xmm9 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
+		PXOR xmm9,xmm9 			; lo seteo en 0 para utilizarlo en el desempaquetamiento ;CAMBIADO PARA QUE COMPILE, ES PXOR PARA LOS XMM
 		PUNPCKLBW xmm6,xmm9 	
 		PUNPCKHBW xmm7,xmm9
 
@@ -136,13 +136,13 @@ waves_asm:
 		ADD r11d,8
 		ADD r10d,12
 		ADD r9d,16
-		PXOR xmm9
-		PXOR xmm10
-		PXOR xmm11
-		PXOR xmm12
-		PXOR xmm13
-		PXOR xmm14
-		.ciclo2
+		PXOR xmm9, xmm9 ;CAMBIADO PARA QUE COMPILE, FALTABA UNA ,xmm9
+		PXOR xmm10, xmm10 ;CAMBIADO PARA QUE COMPILE, idem
+		PXOR xmm11, xmm10 ;CAMBIADO PARA QUE COMPILE,
+		PXOR xmm12, xmm12 ;CAMBIADO PARA QUE COMPILE,
+		PXOR xmm13, xmm13 ;CAMBIADO PARA QUE COMPILE,
+		PXOR xmm14, xmm13 ;CAMBIADO PARA QUE COMPILE,
+		.ciclo2: ;CAMBIADO PARA QUE COMPILE, FALTABAN LOS :
 
 			MOVD xmm11,r13d 	; muevo el j actual en la parte baja de xmm12
 			MOVD xmm12,r11d 	; muevo el j+4 actual en la parte baja de xmm13
@@ -178,8 +178,8 @@ waves_asm:
 		MULPS xmm3,xmm4
 
 		; xmm11-xmm12 <- (j/80)/2*pi
-		MOV xmm11,xmm9
-		MOV xmm12,xmm10
+		;MOV xmm11,xmm9 ;CAMBIADO PARA QUE COMPILE, SEGURO QUERÍAS DECIR MOVDQU
+		;MOV xmm12,xmm10 ;CAMBIADO PARA QUE COMPILE, idem
 		DIVPS xmm11,xmm3
 		DIVPS xmm12,xmm3
 
@@ -210,7 +210,7 @@ waves_asm:
 	
 
 
-	LOOP .ciclo
+	;LOOP .ciclo CAMBIADO PARA QUE COMPILE, MUY LARGO PARA HACERLO SALTAR CON LOOP
 	
 
 

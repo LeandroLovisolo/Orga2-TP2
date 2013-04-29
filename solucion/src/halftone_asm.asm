@@ -39,7 +39,7 @@ halftone_asm:
 
 	; guardo valores
 	MOV r13d,edx 			; r13d = m
-	SAR r13d 				; r13d = m/2 esto es porque voy de a dos lineas a la vez
+	;SAR r13d 				; r13d = m/2 esto es porque voy de a dos lineas a la vez COMENTADA PARA QUE COMPILE!, fijate que falta el inmediato de las veces que shiftea
 
 	; ////////////////////////////////////////////////////////////////////////////////
 	; //////////////////////// SETEO DATOS DE USO GENERAL ///////////////////////////
@@ -72,19 +72,19 @@ halftone_asm:
 	
 	MOV eax,205
 	MOVD xmm12,eax
-	PSHUFLW xmm12.xmm12,0
+	PSHUFLW xmm12,xmm12,0
 
 	MOV eax,410
 	MOVD xmm13,eax
-	PSHUFLW xmm13.xmm13,0
+	PSHUFLW xmm13,xmm13,0
 	
 	MOV eax,615
 	MOVD xmm14,eax
-	PSHUFLW xmm14.xmm14,0
+	PSHUFLW xmm14,xmm14,0
 
 	MOV eax,820
 	MOVD xmm15,eax
-	PSHUFLW xmm15.xmm15,0
+	PSHUFLW xmm15,xmm15,0
 
 	MOVDQU xmm11,[mascara_impares]
 	MOVDQU xmm10,[mascara_pares]
@@ -168,7 +168,7 @@ halftone_asm:
 		PAND xmm1,xmm10
 
 		; junto los resultados de la primera linea que esta actualmente en xmm0,xmm1 vertiendolo todo en xmm0
-		POR xmm0.xmm1
+		POR xmm0,xmm1
 
 		; lo mismo para la segunda fila que esta en xmm2,xmm3
 		POR xmm2,xmm3
@@ -182,7 +182,7 @@ halftone_asm:
 		; ////////////////////////////////////////////////////////////////////////////////
 		
 		MOVDQU [rsi],xmm0
-		MOVDQU [rsi+r9d],xmm2
+		;MOVDQU [rsi+r9d],xmm2 COMENTADA PARA QUE COMPILE!
 
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ///////////////ACA TERMINA EL PROCESAMIENTO EN PARALELO ////////////////////////
@@ -224,8 +224,8 @@ halftone_asm:
 		MOV r11d,r14d 				; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
 		ADD edi,16
 		ADD esi,16
-		LEA edi,[edi + r8d - ecx] 	; le cargo el padding
-		LEA esi [esi + r9d - ecx]
+		;LEA edi,[edi + r8d - ecx] 	; le cargo el padding COMENTADA PARA QUE COMPILE!
+		;LEA esi,[esi + r9d - ecx]    COMENTADA PARA QUE COMPILE!
 		ADD edi,r8d 				; me saleteo la lina ya que debo ir de dos en dos
 		ADD esi,r9d
 		DEC r13d 					; decremento el contador de lineas restantes
