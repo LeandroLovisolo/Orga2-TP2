@@ -11,7 +11,7 @@
 ;   rdi = src
 ;   rsi = dst
 ;   rdx = m
-;   rcx = n
+;   rcx = n1
 ;   r8 = src_row_size
 ;   r9 = dst_row_size
 
@@ -42,7 +42,7 @@ halftone_asm:
 	SAR r13d 				; r13d = m/2 esto es porque voy de a dos lineas a la vez
 
 	; ////////////////////////////////////////////////////////////////////////////////
-	; //////////////////////// SETEAR DATOS DE USO GENERAL ///////////////////////////
+	; //////////////////////// SETEO DATOS DE USO GENERAL ///////////////////////////
 	; ////////////////////////////////////////////////////////////////////////////////
 
 	; obtengo la cantidad de veces que puedo avanzar en una fila
@@ -50,10 +50,8 @@ halftone_asm:
 	MOV eax,ecx
 	IDIV r12d  				; eax = parte entera(n/16), edx = resto de la divicion
 	MOV r14d,eax 			; r14d = parte entera(n/16)
+	MOV r11d,r14d 			; r11d = parte entera de(n/16)
 	
-	; me guardo el valor de lo que hay que restarle a la ultima posicion valida para obtener el ultimo tramo
-	MOV r15d,16			
-	SUB r15d,edx
 
 
 	; me fijo si es resto fue 0 o noy lo seteo en un flag.
@@ -61,8 +59,11 @@ halftone_asm:
 	CMP edx,0
 	JE .setear_registros
 
-	; si no salto es porque no es cero y lo seteo en 1
-	MOV r12d,Tiene_Ultimo_Tramo
+	; si no salto es porque hay un tramo mas a recorrer
+	; me guardo el valor de lo que hay que restarle a la ultima posicion valida para obtener el ultimo tramo
+	MOV r15d,16			
+	SUB r15d,edx
+	MOV r12d,Tiene_Ultimo_Tramo 	; seteo el falg indicando que si hay un ultimo tramo
 
 .setear_registros:
 
@@ -98,8 +99,6 @@ halftone_asm:
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ///////////////ACA COMIENZA EL PROCESAMIENTO EN PARALELO ///////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
-
-		; me reservo xmm10, xmm11 para setar los valores a poner en la memoria de destino
 
 		; obtengo los datos en memoria
 		MOVDQU xmm0,[edi] 		; obtengo los primeros 16 bytes de la linea actual
@@ -193,15 +192,15 @@ halftone_asm:
 		; /////////////// CODIGO PARA RECORRER LA MATRIZ DE LA IMAGEN ////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		DEC r14d 					; decremento la cantidad de iteraciones que me faltan para terminar la fila actual
+		DEC r11d 					; decremento la cantidad de iteraciones que me faltan para terminar la fila actual
 
 		; me fijo si ya llegue al final de la fila
-		CMP r14d,0
+		CMP r11d,0
 		JE .termine_iteraciones ; en el caso en que halla llegado al final debo ver si tengo que recorrer el proximo 
 								; tramito o no
 
 		; me fijo si mire el ultimo tramo
-		CMP r14d,-1
+		CMP r11d,-1
 		JE .saltear_proxima_linea
 
 		; si no termine las iteraciones entonces solo sumo 16 para pasar al proximo ciclo
@@ -222,6 +221,7 @@ halftone_asm:
 		JMP .finCiclo
 
 	.saltear_proxima_linea:
+		MOV r11d,r14d 				; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
 		ADD edi,16
 		ADD esi,16
 		LEA edi,[edi + r8d - ecx] 	; le cargo el padding
