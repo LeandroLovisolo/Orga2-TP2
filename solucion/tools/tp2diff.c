@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
 
 	int pixel_a;
 	int pixel_b;
-
+	int pixelCount = 0;
 	for (int i = 0; i<height; i++) {
 		for (int j = 0; j<width; j++) {
 			pixel_a = (int) src_a_matrix[i][j];
@@ -150,7 +150,8 @@ int main(int argc, char **argv) {
 
 			if (abs(pixel_a - pixel_b) > epsilon) {
 				if (!quite) {
-					printf("Hay diferencias en el pixel: (%d, %d)\n", i, j);
+					printf("Hay diferencias en el pixel: (y,x) = (%d, %d) pixel_a = %d y pixel_b = %d\n", i, j, pixel_a, pixel_b);
+					pixelCount++;
 				}
 
 				equal = 0;
@@ -161,7 +162,9 @@ int main(int argc, char **argv) {
 			}
 		}
 	}
-
+	if(pixelCount != 0) {
+		printf("Hay diferencias en %d pixeles \n",pixelCount);
+	}
 	// Guardo imagen y libero las imagenes
 	char nomb_arch_salida[256];
 
