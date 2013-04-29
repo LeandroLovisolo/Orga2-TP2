@@ -27,39 +27,39 @@ recortar_asm:
     mov rbp, rsp
     push rbx
     push r12
-    push r13
-    push r14
-    push r15
 
-    ; Guardo los parámetros
-    mov r12, rdi                ; r12 = src
-    mov r13, rsi                ; r13 = dst
-    mov r14, rdx                ; r14 = m
-    mov r15, rcx                ; r15 = n
+    ; Libero registro rdx
 
-    xor r11, r11                ; r11 = y = 0
+    mov r12d, edx               ; r12d = m
+
+    ; Comienzo a iterar sobre las filas
+
+    xor r11d, r11d              ; r11d = y = 0
 
 ciclo_y:
+    
+    ; Comienzo a iterar sobre las columnas de la fila actual
 
-    xor r10, r10                ; r10 = x = 0
+    xor r10d, r10d              ; r10d = x = 0
 
 ciclo_x:
 
     ; Termino el ciclo x sólo si terminamos de recorrer la fila actual
-    mov rax, [rbp + 16]         ; rax = tam
-    shl rax, 32                 ; Limpio parte alta de rax
-    shr rax, 32    
-    sub rax, r10                ; rax = tam - x
-    jz fin_ciclo_x
+
+    mov eax, [rbp + 16]         ; eax = tam
+    sub eax, r10d               ; eax = tam - x
+    jz fin_ciclo_x              ; Salto al fin del ciclo si tam - x = 0
 
     ; Compruebo si quedan más de 16 pixels por recorrer
+
     cmp eax, 16
-    jge mas_de_16_columnas
+    jge mas_de_16_columnas      ; Salto si tam - x >= 16
 
     ; Quedan menos de 16, retrocedo hasta que queden exactamente 16
-    mov rbx, 16                 ; rbx = 16
-    sub ebx, eax                ; rbx = 16 - (tam - x)
-    sub r10, rbx                ; r10 = x = x - [16 - (tam - x)]
+
+    mov ebx, 16                 ; ebx = 16
+    sub ebx, eax                ; ebx = 16 - (tam - x)
+    sub r10d, ebx               ; r10d = x = x - [16 - (tam - x)]
 
 mas_de_16_columnas:
 
@@ -68,107 +68,120 @@ mas_de_16_columnas:
     ;;;;;;;;;;;;;;;
 
     ; Copio
-    mov rax, r11                ; eax = y
-    mov rbx, r8                 ; ebx = src_row_size
-    mul ebx                     ; eax = src_row_size * y
-    add rax, r10                ; eax = src_row_size * y + x
-    movdqu xmm0, [r12 + rax]    ; xmm0 = [src + (src_row_size * y + x)]
 
-    ; Pego
-    mov rax, [rbp + 16]         ; eax = tam
-    add rax, r11                ; eax = tam + y
-    mov rbx, r9                 ; ebx = dst_row_size
-    mul ebx                     ; eax = dst_row_size * (tam + y)
-    add rax, [rbp + 16]         ; eax = dst_row_size * (tam + y) + tam
-    add rax, r10                ; eax = dst_row_size * (tam + y) + tam + x
+    mov eax, r11d               ; eax = y
+    mov ebx, r8d                ; ebx = src_row_size
+    mul ebx                     ; eax = src_row_size * y
+    add eax, r10d               ; eax = src_row_size * y + x
     shl rax, 32                 ; Limpio parte alta de rax
     shr rax, 32
-    movdqu [r13 + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + tam + x)] = xmm0
+    movdqu xmm0, [rdi + rax]    ; xmm0 = [src + (src_row_size * y + x)]
+
+    ; Pego
+
+    mov eax, [rbp + 16]         ; eax = tam
+    add eax, r11d               ; eax = tam + y
+    mov ebx, r9d                ; ebx = dst_row_size
+    mul ebx                     ; eax = dst_row_size * (tam + y)
+    add eax, [rbp + 16]         ; eax = dst_row_size * (tam + y) + tam
+    add eax, r10d               ; eax = dst_row_size * (tam + y) + tam + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32
+    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + tam + x)] = xmm0
 
     ;;;;;;;;;;;;;;;
     ;; Esquina B ;;
     ;;;;;;;;;;;;;;;
 
     ; Copio
-    mov rax, r11                ; eax = y
-    mov rbx, r8                 ; ebx = src_row_size
+
+    mov eax, r11d               ; eax = y
+    mov ebx, r8d                ; ebx = src_row_size
     mul ebx                     ; eax = src_row_size * y
-    add rax, r15                ; eax = src_row_size * y + n
-    sub rax, [rbp + 16]         ; eax = src_row_size * y + n - tam
-    add rax, r10                ; eax = src_row_size * y + n - tam + x
+    add eax, ecx                ; eax = src_row_size * y + n
+    sub eax, [rbp + 16]         ; eax = src_row_size * y + n - tam
+    add eax, r10d               ; eax = src_row_size * y + n - tam + x
     shl rax, 32                 ; Limpio parte alta de rax
     shr rax, 32
-    movdqu xmm0, [r12 + rax]    ; xmm0 = [src + (src_row_size * y + n - tam + x)]
+    movdqu xmm0, [rdi + rax]    ; xmm0 = [src + (src_row_size * y + n - tam + x)]
 
     ; Pego
-    mov rax, [rbp + 16]         ; eax = tam
-    add rax, r11                ; eax = tam + y
-    mov rbx, r9                 ; ebx = dst_row_size
+
+    mov eax, [rbp + 16]         ; eax = tam
+    add eax, r11d               ; eax = tam + y
+    mov ebx, r9d                ; ebx = dst_row_size
     mul ebx                     ; eax = dst_row_size * (tam + y)
-    add rax, r10                ; eax = dst_row_size * (tam + y) + x
-    movdqu [r13 + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + x)] = xmm0
+    add eax, r10d               ; eax = dst_row_size * (tam + y) + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32
+    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + x)] = xmm0
 
     ;;;;;;;;;;;;;;;
     ;; Esquina C ;;
     ;;;;;;;;;;;;;;;
 
     ; Copio
-    mov rax, r14                ; eax = m
-    sub rax, [rbp + 16]         ; eax = m - tam
-    add rax, r11                ; eax = m - tam + y
-    mov rbx, r8                 ; ebx = src_row_size
-    mul ebx                     ; eax = src_row_size * (m - tam + y)
-    add rax, r10                ; eax = src_row_size * (m - tam + y) + x
-    movdqu xmm0, [r12 + rax]    ; xmm0 = [src + (src_row_size * (m - tam + y) + x)]
 
-    ; Pego
-    mov rax, r11                ; eax = y
-    mov rbx, r9                 ; ebx = dst_row_size
-    mul ebx                     ; eax = dst_row_size * y
-    add rax, [rbp + 16]         ; eax = dst_row_size * y + tam
-    add rax, r10                ; eax = dst_row_size * y + tam + x
+    mov eax, r12d               ; eax = m
+    sub eax, [rbp + 16]         ; eax = m - tam
+    add eax, r11d               ; eax = m - tam + y
+    mov ebx, r8d                ; ebx = src_row_size
+    mul ebx                     ; eax = src_row_size * (m - tam + y)
+    add eax, r10d               ; eax = src_row_size * (m - tam + y) + x
     shl rax, 32                 ; Limpio parte alta de rax
     shr rax, 32
-    movdqu [r13 + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + tam + x)] = xmm0
+    movdqu xmm0, [rdi + rax]    ; xmm0 = [src + (src_row_size * (m - tam + y) + x)]
+
+    ; Pego
+
+    mov eax, r11d               ; eax = y
+    mov ebx, r9d                ; ebx = dst_row_size
+    mul ebx                     ; eax = dst_row_size * y
+    add eax, [rbp + 16]         ; eax = dst_row_size * y + tam
+    add eax, r10d               ; eax = dst_row_size * y + tam + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32
+    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * (tam + y) + tam + x)] = xmm0
 
     ;;;;;;;;;;;;;;;
     ;; Esquina D ;;
     ;;;;;;;;;;;;;;;
 
     ; Copio
-    mov rax, r14                ; eax = m
-    sub rax, [rbp + 16]         ; eax = m - tam
-    add rax, r11                ; eax = m - tam + y
-    mov rbx, r8                 ; ebx = src_row_size
+
+    mov eax, r12d               ; eax = m
+    sub eax, [rbp + 16]         ; eax = m - tam
+    add eax, r11d               ; eax = m - tam + y
+    mov ebx, r8d                ; ebx = src_row_size
     mul ebx                     ; eax = src_row_size * (m - tam + y)
-    add rax, r15                ; eax = src_row_size * (m - tam + y) + n
-    sub rax, [rbp + 16]         ; eax = src_row_size * (m - tam + y) + n - tam
-    add rax, r10                ; eax = src_row_size * (m - tam + y) + n - tam + x
+    add eax, ecx                ; eax = src_row_size * (m - tam + y) + n
+    sub eax, [rbp + 16]         ; eax = src_row_size * (m - tam + y) + n - tam
+    add eax, r10d               ; eax = src_row_size * (m - tam + y) + n - tam + x
     shl rax, 32                 ; Limpio parte alta de rax
     shr rax, 32    
-    movdqu xmm0, [r12 + rax]    ; xmm0 = [src + (src_row_size * (m - tam + y) + n - tam + x)]
+    movdqu xmm0, [rdi + rax]    ; xmm0 = [src + (src_row_size * (m - tam + y) + n - tam + x)]
 
     ; Pego
-    mov rax, r11                ; eax = y
-    mov rbx, r9                 ; ebx = dst_row_size
-    mul ebx                     ; eax = dst_row_size * y
-    add rax, r10                ; eax = dst_row_size * y + x
-    movdqu [r13 + rax], xmm0    ; [dst + (dst_row_size * y + x)] = xmm0
 
-    add r10, 16                 ; r10 = x = x + 16
+    mov eax, r11d               ; eax = y
+    mov ebx, r9d                ; ebx = dst_row_size
+    mul ebx                     ; eax = dst_row_size * y
+    add eax, r10d               ; eax = dst_row_size * y + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32
+    movdqu [rsi + rax], xmm0    ; [dst + (dst_row_size * y + x)] = xmm0
+
+    add r10d, 16                ; r10d = x = x + 16
     jmp ciclo_x
 
 fin_ciclo_x:
 
-    inc r11                     ; r11 = y = y + 1
-    mov rax, [rbp + 16]         ; rax = tam
-    mov rbx, r11
+    inc r11d                    ; r11d = y = y + 1
+    mov eax, [rbp + 16]         ; eax = tam
+    mov ebx, r11d
     cmp eax, ebx
     jne ciclo_y
 
-    pop r15
-    pop r14
-    pop r13
     pop r12
     pop rbx
     pop rbp

@@ -37,12 +37,10 @@ float phi(unsigned char *img, int row_size, int i, int j, float alpha, enum chan
     unsigned char max_g = max_9(pixels_g);
     unsigned char max_b = max_9(pixels_b);
 
-    if((c == R && max_r >= max_g && max_r >= max_b) ||
-       (c == G && max_r <  max_g && max_g >= max_b) ||
-       (c == B && max_r <  max_g && max_g <  max_b)) {
-        return 1 + alpha;
-    } else {
-        return 1 - alpha;
+    switch(c) {
+        case R:  return max_r >= max_g && max_r >= max_b ? (1 + alpha) : (1 - alpha);
+        case G:  return max_r <  max_g && max_g >= max_b ? (1 + alpha) : (1 - alpha);
+        default: return max_r <  max_b && max_g <  max_b ? (1 + alpha) : (1 - alpha);
     }
 }
 
