@@ -42,7 +42,6 @@ umbralizar_asm:
     ;Preparación del máximo para realizar comparaciones más tarde
     ;###################################################################################################################
     movq xmm5, r12
-    ;pxor xmm6, xmm6 ;Pongo la máscara de packed shuffle en xmm6
     movdqu xmm6, [pckSuffleMask]
     pshufb xmm5, xmm6 ;Me queda en xmm5 el máximo repetido en words
     ;Armo registro para poner bytes en FF si es > max
@@ -103,7 +102,6 @@ umbralizar_asm:
         pcmpgtw xmm3, xmm5 ;Veo si mis pixeles convertidos a word son mayores que el máximo
         pcmpgtw xmm4, xmm5 ;Esto me deja una máscara de words
         packsswb xmm3, xmm4 ;Hago el empaquetamiento otra vez y me queda una máscara para hacer la suma al acum 
-        ;packuswb xmm3, xmm4 ; VER POR QUE FUNCIONA SIGNED Y NO UNSIGNED COMO DEBERÍA
         movdqu xmm10, xmm9 ;Hago una copia de la double quadword de 255's, 255 es el valor que le corresponde a los números > max
         pand xmm10, xmm3 ;Aplico la máscara de máximos a xmm10 para que me quede cuales pixeles van a ser 255 y poder sumar
         paddusb xmm8, xmm10 ;Pongo en el acumulador los bits que le corresponden tener 255
@@ -135,15 +133,9 @@ umbralizar_asm:
         ;Convierto words correspondientes a la parte baja a double words para usar operaciones de pto flotante
         punpcklwd xmm14, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word
         punpckhwd xmm15, xmm7
-        ;Los convierto a sigle presition floats
+        ;Los convierto a sigle presicion floats
         cvtdq2ps xmm14, xmm14 ;Convierte las words en single Single-Precision floats
         cvtdq2ps xmm15, xmm15
-        ;#############################
-        ;Setteo en xmm3 el valor de q  PODRIA METERSE EN XMM6 AL PRINCIPIO!
-        ;#############################
-        ;movq xmm3, r13 ;Muevo Q a xmm3
-        ;shufps xmm3, xmm3, 0d ;Lleno de Q's words a xmm3
-        ;cvtdq2ps xmm3, xmm3 ;Convierto q a float para dividir
         ;#############################
         ;Hago las divisiones por q
         ;#############################
@@ -174,7 +166,7 @@ umbralizar_asm:
         movdqu xmm10, xmm2
         punpcklwd xmm15, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE BAJA)
         punpckhwd xmm10, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE ALTA)
-        ;Los convierto a sigle presition floats
+        ;Los convierto a sigle presicion floats
         cvtdq2ps xmm15, xmm15 ;CVTDQ2PS—Convert Packed Dword Integers to Packed Single-Precision FP Values
         cvtdq2ps xmm10, xmm10
         ;#############################
