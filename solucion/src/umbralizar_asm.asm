@@ -36,7 +36,6 @@ umbralizar_asm:
     push r13
     mov r12, [rbp + 16] ;Guardo el máximo
     mov r13, [rbp + 24] ;Guardo Q
-    mov rbp, rsp
     and r13, 00000000000000FFh
     and r12, 00000000000000FFh ;Pongo todo en 0's excepto el máximo que es un byte
     ;###################################################################################################################
@@ -57,15 +56,31 @@ umbralizar_asm:
     and r9, 000000000000000FFh
     movq xmm11, r9
     pshufb xmm11, xmm6 ;Me queda el mínimo repetido en words para realizar luego la comparación
+    ;##################################################################################################################
+    ;Setteo el valor de q en words y lo paso a punto flotante para luego utilizarlo
+    ;##################################################################################################################
+    movq xmm6, r13 ;Muevo Q a xmm3
+    shufps xmm6, xmm6, 0d ;Lleno de Q's double words a xmm3
+    cvtdq2ps xmm6, xmm6 ;Convierto q a float
+    ;###################################################################################################################
+    ;Movimientos a travéz de la matriz:
+    ;La idea es sacar el cálculo de cuantos píxeles tiene la matriz, incluyendo el padding y recorrerlos linealmente,
+    ;en cada iteración se resta la cantidad de bytes que se leyeron (16), si resulta menor que 16, vuelvo para atrás
+    ;para que me queden 16 justos, aunque vuelvo a calcular algunos, es algo despreciable.
+    ;###################################################################################################################
+    ;####################################
+    ;Calculo de la longitud de la matriz
+    ;####################################
+    mov rax, r8
+    mul rdx
+    mov rcx, rax
     ;###################################################################################################################
     ;xmm12 ->  Contiene en todos los bytes el mínimo
     ;xmm11 ->  Contiene el mínimo repetido en words
     ;xmm9  ->  Contiene en todos los bytes 255
     ;xmm5  ->  Contiene el máximo repetido en words
+    ;xmm6 ->   Contiene la representación flotante de Q 4 veces (4 floats Q)
     ;###################################################################################################################
-    mov rax, r8
-    mul rdx
-    mov rcx, rax
     .ciclo:
         pxor xmm8, xmm8 ;Mi acumulador
     	movdqu xmm1, [rdi] ;Muevo 16 bytes o pixeles a xmm1
@@ -126,14 +141,14 @@ umbralizar_asm:
         ;#############################
         ;Setteo en xmm3 el valor de q  PODRIA METERSE EN XMM6 AL PRINCIPIO!
         ;#############################
-        movq xmm3, r13 ;Muevo Q a xmm3
-        shufps xmm3, xmm3, 0d ;Lleno de Q's words a xmm3
-        cvtdq2ps xmm3, xmm3 ;Convierto q a float para dividir
+        ;movq xmm3, r13 ;Muevo Q a xmm3
+        ;shufps xmm3, xmm3, 0d ;Lleno de Q's words a xmm3
+        ;cvtdq2ps xmm3, xmm3 ;Convierto q a float para dividir
         ;#############################
         ;Hago las divisiones por q
         ;#############################
-        divps xmm14, xmm3 ;Divide Packed Single-Precision Floating-Point Values
-        divps xmm15, xmm3
+        divps xmm14, xmm6 ;Divide Packed Single-Precision Floating-Point Values
+        divps xmm15, xmm6
         ;#############################
         ;Trunco a enteros para hacer la función float
         ;#############################
@@ -144,15 +159,13 @@ umbralizar_asm:
         ;#############################
         cvtdq2ps xmm14, xmm14
         cvtdq2ps xmm15, xmm15
-        mulps xmm14, xmm3
-        mulps xmm15, xmm3
+        mulps xmm14, xmm6
+        mulps xmm15, xmm6
         ;#############################
         ;Convierto a enteros y empaqueto
         ;#############################
         cvttps2dq xmm14, xmm14 ;Convierto todo a int otra vez para empaquetarlo
         cvttps2dq xmm15, xmm15
-        ;Acá hay que empaquetar sin signo! aunque así funciona bien 
-        ;packssdw xmm14, xmm15 ;empaqueto todo otra vez y lo dejo en xmm14 SIGNED!
         packusdw xmm14, xmm15 ;Empaqueto unsigned!
         ;############################################################
         ;Trabajo con las words resultantes del desempaquetamiento high
@@ -161,15 +174,14 @@ umbralizar_asm:
         movdqu xmm10, xmm2
         punpcklwd xmm15, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE BAJA)
         punpckhwd xmm10, xmm7 ;Desempaqueto aun mas todo y lo convierto a double word (PARTE ALTA)
-
         ;Los convierto a sigle presition floats
         cvtdq2ps xmm15, xmm15 ;CVTDQ2PS—Convert Packed Dword Integers to Packed Single-Precision FP Values
         cvtdq2ps xmm10, xmm10
         ;#############################
         ;Hago las divisiones por q
         ;#############################
-        divps xmm15, xmm3 ;Divide Packed Single-Precision Floating-Point Values
-        divps xmm10, xmm3
+        divps xmm15, xmm6 ;Divide Packed Single-Precision Floating-Point Values
+        divps xmm10, xmm6
         ;#############################
         ;Trunco a enteros para hacer la función float
         ;#############################
@@ -180,19 +192,17 @@ umbralizar_asm:
         ;#############################
         cvtdq2ps xmm15, xmm15
         cvtdq2ps xmm10, xmm10
-        mulps xmm15, xmm3
-        mulps xmm10, xmm3
+        mulps xmm15, xmm6
+        mulps xmm10, xmm6
         ;#############################
         ;Convierto a enteros y empaqueto
         ;#############################
         cvttps2dq xmm15, xmm15 ;Convierto todo a int otra vez para empaquetarlo
         cvttps2dq xmm10, xmm10
-        ;packssdw xmm15, xmm10 ;empaqueto todo otra vez y lo dejo en xmm15 SIGNED
         packusdw xmm15, xmm10 ;Empaqueto unsigned de double word a word
         ;###################################################################################################################
         ;Empaquetado y armado final de los bytes a colocar
         ;###################################################################################################################
-       ; packsswb xmm14, xmm15 ;Vuelvo a empaquetar dejando todo en bytes en xmm14 SIGENED
         packuswb xmm14, xmm15 ;Empaqueto unsigned
         pand xmm14, xmm13 ;Le aplico la máscara para el caso anteriormente creada
         paddusb xmm8, xmm14 ;Lo sumo al acumulador
