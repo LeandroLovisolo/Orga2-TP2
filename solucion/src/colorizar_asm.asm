@@ -33,6 +33,7 @@ section .data
 section .text
 
 colorizar_asm:
+
     push rbp
     mov rbp, rsp
     push rbx
@@ -40,19 +41,15 @@ colorizar_asm:
     push r13
 
     ; Guardo parámetros
-    mov r12, rdx                ; r12 = m
-    mov r13, rcx                ; r13 = n
 
-    shl r8, 32                  ; Limpio parte alta de r8
-    shr r8, 32
-    shl r9, 32                  ; Limpio parte alta de r9
-    shr r9, 32
+    mov r12d, edx               ; r12d = m
+    mov r13d, ecx               ; r13d = n
 
-    mov r11, 1                  ; r11 = y = 1
+    mov r11d, 1                 ; r11d = y = 1
 
 ciclo_y:
 
-    mov r10, 3                  ; r10 = x = 3
+    mov r10d, 3                 ; r10d = x = 3
 
 ciclo_x:
 
@@ -62,63 +59,69 @@ ciclo_x:
 
     ; Comienzo sin ajuste de última fila
 
-    xor rcx, rcx                ; rcx = offset = 0
+    xor ecx, ecx                ; ecx = offset = 0
 
     ; Decido si estoy en la última fila
 
-    mov rax, r12                ; rax = m
-    sub rax, 2                  ; rax = m - 2
-    cmp r11, rax
+    mov eax, r12d               ; eax = m
+    sub eax, 2                  ; eax = m - 2
+    cmp r11d, eax
     jl obtener_vecinos          ; Salto si no estoy en la última fila (y < m - 2)
 
     ; Estoy en la última fila - Decido si es es necesario el ajuste
 
-    mov rax, r13                ; eax = n
+    mov eax, r13d               ; eax = n
     mov ebx, 3                  ; ebx = 3
     mul ebx                     ; eax = 3 * n
-    sub rax, r10                ; eax = 3 * n - x
-    cmp rax, 13
+    sub eax, r10d               ; eax = 3 * n - x
+    cmp eax, 13
     jge obtener_vecinos         ; Salto si 3 * n - x < 13
-    mov rcx, 7                  ; rcx = offset = 7
+    mov ecx, 7                  ; ecx = offset = 7
 
 obtener_vecinos:
 
     ; Obtengo los tres vecinos superiores
 
-    mov rax, r8                 ; eax = src_row_size
-    mov rbx, r11                ; ebx = y
+    mov eax, r8d                ; eax = src_row_size
+    mov ebx, r11d               ; ebx = y
     dec ebx                     ; ebx = y - 1
     mul ebx                     ; eax = src_row_size * (y - 1)
-    add rax, r10                ; eax = src_row_size * (y - 1) + x
-    sub rax, 3                  ; eax = src_row_size * (y - 1) + x - 3
-    sub rax, rcx                ; eax = src_row_size * (y - 1) + x - 3 - offset
+    add eax, r10d               ; eax = src_row_size * (y - 1) + x
+    sub eax, 3                  ; eax = src_row_size * (y - 1) + x - 3
+    sub eax, ecx                ; eax = src_row_size * (y - 1) + x - 3 - offset
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     movdqu xmm1, [rdi + rax]    ; xmm1 = [src + (src_row_size * (y - 1) + x - 3 - offset)]
 
     ; Obtengo pixel actual y vecinos a izquierda y derecha
 
-    mov rax, r8                 ; eax = src_row_size
-    mov rbx, r11                ; ebx = y
+    mov eax, r8d                ; eax = src_row_size
+    mov ebx, r11d               ; ebx = y
     mul ebx                     ; eax = src_row_size * y
-    add rax, r10                ; eax = src_row_size * y + x
-    sub rax, 3                  ; eax = src_row_size * y + x - 3
-    sub rax, rcx                ; eax = src_row_size * y + x - 3 - offset
+    add eax, r10d               ; eax = src_row_size * y + x
+    sub eax, 3                  ; eax = src_row_size * y + x - 3
+    sub eax, ecx                ; eax = src_row_size * y + x - 3 - offset
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     movdqu xmm2, [rdi + rax]    ; xmm2 = [src + (src_row_size * y + x - 3 - offset)]
 
     ; Obtengo los tres vecinos inferiores
 
-    mov rax, r8                 ; eax = src_row_size
-    mov rbx, r11                ; ebx = y
+    mov eax, r8d                ; eax = src_row_size
+    mov ebx, r11d               ; ebx = y
     inc ebx                     ; ebx = y + 1
     mul ebx                     ; eax = src_row_size * (y + 1)
-    add rax, r10                ; eax = src_row_size * (y + 1) + x
-    sub rax, 3                  ; eax = src_row_size * (y + 1) + x - 3
-    sub rax, rcx                ; eax = src_row_size * (y + 1) + x - 3 - offset
+    add eax, r10d               ; eax = src_row_size * (y + 1) + x
+    sub eax, 3                  ; eax = src_row_size * (y + 1) + x - 3
+    sub eax, ecx                ; eax = src_row_size * (y + 1) + x - 3 - offset
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     movdqu xmm3, [rdi + rax]    ; xmm3 = [src + (src_row_size * (y + 1) + x - 3 - offset)]    
 
     ; Si hubo ajuste de fin de última fila, reacomodo los bytes de la siguiente forma:
     ; RGBR GBRG B___ ____ => 0000 000R GBRG BRGB
 
-    cmp rcx, 0
+    cmp ecx, 0
     je reordenar_bytes          ; Salto sólo si no hubo ajuste de fin de última fila
     pshufb xmm1, [mask_ajuste_ultima_fila]
     pshufb xmm2, [mask_ajuste_ultima_fila]
@@ -157,14 +160,14 @@ reordenar_bytes:
 
     ; Extraigo maxB, maxG y maxR
 
-    xor rcx, rcx                ; rcx = 0
+    xor ecx, ecx                ; ecx = 0
     movd ecx, xmm1              ; ecx = maxB
 
-    xor rbx, rbx                ; rbx = 0
+    xor ebx, ebx                ; ebx = 0
     pshufd xmm2, xmm1, 1        ; xmm2 = ____ ____ ____ maxG
     movd ebx, xmm2              ; ebx = maxG
 
-    xor rax, rax                ; rax = 0
+    xor eax, eax                ; eax = 0
     pshufd xmm2, xmm1, 2        ; xmm2 = ____ ____ ____ maxR
     movd eax, xmm2              ; eax = maxR
 
@@ -236,10 +239,12 @@ tupla_phi:
 
     ; Leo pixel actual
 
-    mov rax, r8                 ; eax = src_row_size
-    mov rbx, r11                ; ebx = y
+    mov eax, r8d                ; eax = src_row_size
+    mov ebx, r11d               ; ebx = y
     mul ebx                     ; eax = src_row_size * y
-    add rax, r10                ; eax = src_row_size * y + x
+    add eax, r10d               ; eax = src_row_size * y + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     movdqu xmm2, [rdi + rax]    ; xmm2 = [src + (src_row_size * y + x)]
 
     ; Reordeno los canales y los convierto a floats
@@ -264,29 +269,30 @@ tupla_phi:
 
     ; Escribo pixel destino
 
-    mov rax, r9                 ; eax = dst_row_size
-    mov rbx, r11                ; ebx = y
+    mov eax, r9d                ; eax = dst_row_size
+    mov ebx, r11d               ; ebx = y
     mul ebx                     ; eax = dst_row_size * y
-    add rax, r10                ; eax = dst_row_size * y + x
+    add eax, r10d               ; eax = dst_row_size * y + x
+    shl rax, 32                 ; Limpio parte alta de rax
+    shr rax, 32    
     add [rsi + rax], ecx        ; [dst + (dst_row_size * y + x)] += ecx
 
     ; Iteración ciclo x
 
-    add r10, 3                  ; r10 = x = x + 3
-    mov rax, r13                ; eax = n
+    add r10d, 3                 ; r10d = x = x + 3
+    mov eax, r13d               ; eax = n
     mov ebx, 3                  ; ebx = 3
     mul ebx                     ; eax = 3 * n
     sub eax, 3                  ; eax = 3 * n - 3
-    and rax, 0x00000000FFFFFFFF ; Limpio parte alta de rax
-    cmp r10, rax
+    cmp r10d, eax
     jl ciclo_x                  ; Termino el ciclo si x = 3 * n - 3
 
     ; Iteración ciclo y
 
-    add r11, 1                  ; r11 = y = y + 1
-    mov rax, r12                ; rax = m
-    dec rax                     ; rax = m - 1
-    cmp r11, rax
+    add r11d, 1                 ; r11d = y = y + 1
+    mov eax, r12d               ; eax = m
+    dec eax                     ; eax = m - 1
+    cmp r11d, eax
     jl ciclo_y                  ; Termino el ciclo si y = m - 1
 
     pop r13
