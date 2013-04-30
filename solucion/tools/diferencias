@@ -1,0 +1,40 @@
+#!/usr/bin/python2
+# coding=UTF-8
+
+import sys
+from PIL import Image
+
+if len(sys.argv) != 4:
+    print "Uso: " + sys.argv[0] + " <imagen 1> <imagen 2> <salida>"
+    print "Compara ambas imágenes pixel por pixel, y guarda"
+    print "en <salida> un mapa con las diferencias halladas."
+    sys.exit(-1)
+
+try:
+    a = Image.open(sys.argv[1])
+except:
+    print "Error abriendo " + sys.argv[1] + "."
+    sys.exit(-1)
+
+try:
+    b = Image.open(sys.argv[2])
+except:
+    print "Error abriendo " + sys.argv[2] + "."
+    sys.exit(-1)
+
+if a.size != b.size:
+    print "Las imágenes no son del mismo tamaño."
+    sys.exit(-1)
+
+diff = Image.new("RGB", a.size)
+
+for y in range(0, a.size[1]):
+    for x in range(0, a.size[0]):
+        if a.getpixel((x,y)) != b.getpixel((x,y)):
+            diff.putpixel((x, y), (255, 255, 255))
+
+try:
+    diff.save(sys.argv[3])
+except:
+    print "Error abriendo " + sys.argv[3] + "."
+    sys.exit(-1)
