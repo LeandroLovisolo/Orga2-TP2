@@ -33,8 +33,6 @@ dos: DD 2.0, 2.0, 2.0, 2.0
 ocho: DD 8.0, 8.0, 8.0, 8.0
 jotas1: DD 0.0, 1.0, 2.0, 3.0
 jotas2: DD 4.0, 5.0, 6.0, 7.0
-jotas3: DD 8.0, 9.0, 10.0, 11.0
-jotas4: DD 12.0, 13.0, 14.0, 15.0
 seis: DD 6.0, 6.0, 6.0, 6.0
 cientoVeinte: DD 120.0, 120.0, 120.0, 120.0
 cincoMilCuarenta: DD 5040.0, 5040.0, 5040.0, 5040.0
@@ -50,15 +48,6 @@ waves_asm:
 	PUSH r14 			; Alineado
 	PUSH r15 			; Desalineado
 
-	
-	; ////////////////////////////////////////////////////////////////////////////////
-	; ///////////// PUSHEO DATOS QUE USARE LUEGO PARA LIBERAR REGISTROS //////////////
-	; ////////////////////////////////////////////////////////////////////////////////
-
-	PUSH xmm0
-	PUSH xmm1
-	PUSH xmm2
-
 
 	; ////////////////////////////////////////////////////////////////////////////////
 	; //////////////////////// SETEO DATOS DE USO GENERAL ////////////////////////////
@@ -67,38 +56,54 @@ waves_asm:
 	XOR r12,r12 		; r12 <- i0
 	XOR r13,r13 		; r13 <- j0
 
-	MOVDQU xmm0,[pi] 	; xmm0 <- pi,pi,pi,pi
-	MOVDQU xmm1,[dos]	; xmm1 <- 2,2,2,2
+	MOVDQU xmm3,[pi] 				; xmm0 <- pi,pi,pi,pi
+	MOVDQU xmm4,[dos]				; xmm1 <- 2.0,2.0,2.0,2.0
+	MOVDQU xmm5,[jotas1] 			; xmm5 <- 3,2,1,0
+	MOVDQU xmm6,[jotas2] 			; xmm6 <- 7,6,5,4
+	MOVDQU xmm7,[seis] 				; xmm7 <- 6.0,6.0,6.0,6.0
+	MOVDQU xmm8,[cientoVeinte] 		; xmm8 <- 120.0,120.0,120.0,120.0
+	MOVDQU xmm9,[cincoMilCuarenta] 	; xmm9 <- 5040.0,5040.0,5040.0,5040.0
+
+	; ##################### REPITO LOS _SCALE EN LOSREGISTROS ######################
+	
+	SHUFPS xmm0,xmm0,0 	; xmm0 <- x_scale,x_scale,x_scale,x_scale
+	SHUFPS xmm1,xmm1,0 	; xmm1 <- y_scale,y_scale,y_scale,y_scale
+	SHUFPS xmm2,xmm2,0 	; xmm2 <- g_scale,g_scale,g_scale,g_scale
 
 	; //////////////////// STEO LOS CONTADORES DEL LOOP /////////////////////////////
 
 	; ############ salvo valores hasta terminar de setear los datos #################
+	
 	MOV r9,rcx 			; r9 <- n
 
 	; ############ seteo rcx para indicarle cuantas vueltas iterar ##################
+	
 	MOV rcx,rdx 		; rcx <- m
 
-	; obtengo la cantidad de iteraciones de 16 byte que puedo hacer en una misma fila 
+	; obtengo la cantidad de iteraciones de 8 byte que puedo hacer en una misma fila 
 	; sin pasarme
-	MOV r14,16
+	MOV r14,8
 	XOR rdx,rdx
-	MOV rax,r9
-	IDIV r14 			; divido n/16
-	MOV r14,rax 		; r14 <- [n/16]
-	MOV r10,r14 		; r10 <- [n/16], ---- en esta variable voy a ir iterando ----
+	XOR rax,rax
+	MOV eax,r9d 		; en r9 hay un entero en la parte baja en el resto es basura
+	IDIV r14 			; divido n/8
+	MOV r14,rax 		; r14 <- [n/8]
+	MOV r10,r14 		; r10 <- [n/8], ---- en esta variable voy a ir iterando ----
 
 	; me fijo si queda un tramo mas por recorrer luego de las iteraciones de 16 bytes
 	MOV rbx,No_Tiene_ultimo_tramo
 	CMP rdx,0
 	JE .ciclo
 
-	; ############ si no salto es porque queda un tramo aparte para recorrer #########
-	MOV r15,16
-	SUB r15,rdx 				; r15d <- 16 - (n mod 16)
-	MOV rbx,Tiene_Ultimo_Tramo 	; seteo el flag rbx indicando que si hay un ultimo tramo
+	; ########## si no salto es porque queda un tramo aparte para recorrer ##########
+	MOV r15,8
+	SUB r15,rdx 				; r15d <- 8 - (n mod 8)
+	MOV rbx,Tiene_Ultimo_Tramo 	; seteo el flag rbx indicando que hay un ultimo tramo
+
+	; ############################ EMPIEZA EL CICLO #################################
 
 	; lo primero que miro es si hay algo que recorrer, si es la imagen vacia no tiene 
-	; sentido recorrerla
+	; sentido recorrerla, se que si tiene una fila minimo tiene 16 bytes. ENUNCIADO TP2
 	CMP rcx,0
 	JE .fin
 
@@ -106,26 +111,28 @@ waves_asm:
 	
 	; ############# REGISTROS PARA EL LOOP ###########################################
 	; rcx <- m
-	; r10 <- [n/16]
-	; r14 <- [n/16]
+	; r10 <- [n/8]
+	; r14 <- [n/8]
 	; rbx <- queda_ultimo_tramo o no
-	; r15 <- 16 - (n mod 16)
+	; r15 <- 8 - (n mod 8)
 
 	; ############ REGISTROS DE LA IMAGEN ############################################
 
 	; rdi <- src
    	; rsi <- dst
    	; r8 <- row_size
-   	; xmm0 <- pi,pi,pi,pi
-	; xmm1 <- 2,2,2,2
 	; r12 <- i0
 	; r13 <- j0
-
-	; ########### REGISTROS PUSHEADOS ################################################
-	
-	; xmm0 <- x_escale
-	; xmm1 <- y_escale
-	; xmm2 <- g_escale
+	; xmm0 <- x_scale,x_scale,x_scale,x_scale
+	; xmm1 <- y_scale,y_scale,y_scale,y_scale
+	; xmm2 <- g_scale,g_scale,g_scale,g_scale
+   	; xmm3 <- pi,pi,pi,pi
+	; xmm4 <- 2.0,2.0,2.0,2.0
+	; xmm5 <- 3.0,2.0,1.0,0.0
+	; xmm6 <- 7.0,6.0,5.0,4.0
+	; xmm7 <- 6.0,6.0,6.0,6.0
+	; xmm8 <- 120.0,120.0,120.0,120.0
+	; xmm9 <- 5040.0,5040.0,5040.0,5040.0
 
 	; ############################ FIN ESTADO DE LOS REGISTROS #######################
 
@@ -135,54 +142,30 @@ waves_asm:
 		; ///////////////// EMPAQUETO TODOS LOS j/80 DE CADA PIXEL ///////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		; seteo los j con numeros de 0, ... ,15
-		MOVDQU xmm2,[jotas1] ; VER DE COLOCAR ALINEADO LOS DATOS PARA USAR MOVDQA
-		MOVDQU xmm3,[jotas2]
-		MOVDQU xmm4,[jotas3]
-		MOVDQU xmm5,[jotas4]
+		; obtengo los j
+		MOVD xmm10,r13d 		; xmm10 <- basura,basura,basura,j
+		SHUFPS xmm10,xmm10,0  	; xmm10 <- j,j,j,j
+		CVTDQ2PS xmm10,xmm10 		; convierto los J's a punto flotante de simple presicion
+		MOVDQU xmm11,xmm10 		; xmm11 <- j.0,j.0,j.0,j.0
 
-		; lleno de j's xmm6
-		PXOR xmm7,xmm7
-		MOVQ xmm6,r13
-		MOVDQU xmm7,xmm6
-		PSLLDQ xmm7,4
-		POR xmm7,xmm6
-		PSLLDQ xmm7,4
-		POR xmm7,xmm6
-		PSLLDQ xmm7,4
-		POR xmm7,xmm6
+		; a registros de j les sumo 0, ... ,7
+		PADDW xmm10,xmm5 		; xmm10 <- (j+3).0, ... ,j.0
+		PADDW xmm11,xmm6 		; xmm11 <- (j+7).0, ... ,(j+4).0
 
-		CVTDQ2PS xmm6,xmm7
+		; ######################### DIVIDO POR 2 HASTA DIVIDIR POR 8 #######################
 
-		; a los registros con los numeros del 0, ... ,15 les sumo j
-		ADDPS xmm2,xmm6
-		ADDPS xmm3,xmm6
-		ADDPS xmm4,xmm6
-		ADDPS xmm5,xmm6
-
+		DIVPS xmm10,xmm4
+		DIVPS xmm10,xmm4
+		DIVPS xmm10,xmm4 		; xmm10 <- (j+4).0/8.0, ... , j.0/8.0
+		DIVPS xmm11,xmm4
+		DIVPS xmm11,xmm4
+		DIVPS xmm11,xmm4 		; xmm1 <- (j+7).0/8.0, ... , (j+4).0/8.0
+ 
 
 		; ########################## ESTADO DE LOS REGISTROS #############################
 	
-		; xmm2 <- j, ... ,j+3
-		; xmm3 <- j+4, ... ,j+7 	    VER SI REALMENTE EL RESULTADO ES ESTE QUE ENUNCIO
-		; xmm4 <- j+8, ... ,j+11
-		; xmm5 <- j+12, ... j+15
-
-		; ############################ FIN ESTADO DE LOS REGISTROS #######################
-
-		MOVDQU xmm6,[ocho]
-
-		DIVPS xmm2,xmm6
-		DIVPS xmm3,xmm6
-		DIVPS xmm4,xmm6
-		DIVPS xmm5,xmm6
-
-		; ########################## ESTADO DE LOS REGISTROS #############################
-	
-		; xmm2 <- j/80, ... ,(j+3)/80
-		; xmm3 <- (j+4)/80, ... ,(j+7)/80
-		; xmm4 <- (j+8)/80, ... ,(j+11)/80
-		; xmm5 <- (j+12)/80, ... (j+15)/80
+		; xmm10 <- ; xmm10 <- (j+4).0/8.0, ... , j.0/8.0
+		; xmm11 <- ; xmm1 <- (j+7).0/8.0, ... , (j+4).0/8.0
 
 		; ############################ FIN ESTADO DE LOS REGISTROS #######################
 
@@ -190,397 +173,363 @@ waves_asm:
 		; ////////////////////// FUNCION DE TAYLOR PARA LOS j/80 /////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		; ################################################################################
-		; ## HABLO DE LOS REGISTROS COMO UN SOLO NUMERO SABIENDO QUE ESTAN EMPAQUETADOS ##
-		; ################################################################################
-
-		MULPS xmm0,xmm1 	; xmm0 <- 2*pi
-
 		; ############################### K = [x/(2*pi)] #################################
 
-		MOVDQU xmm6,xmm2
-		MOVDQU xmm7,xmm3
-		MOVDQU xmm8,xmm4
-		MOVDQU xmm9,xmm5
+		MOVDQU xmm12,xmm10
+		MOVDQU xmm13,xmm11
 
-		DIVPS xmm6,xmm0 	; k <- x/(2*pi)
-		DIVPS xmm7,xmm0 	; k <- x/(2*pi)
-		DIVPS xmm8,xmm0 	; k <- x/(2*pi)
-		DIVPS xmm9,xmm0 	; k <- x/(2*pi)
+		DIVPS xmm12,xmm4 	; xmm12 <- x.0/2.0
+		DIVPS xmm13,xmm4 	; xmm13 <- x.0/2.0
+		
+		DIVPS xmm12,xmm3 	; xmm12 <- x.0/2.0*pi
+		DIVPS xmm13,xmm3 	; xmm13 <- x.0/2.0*pi 
+
+		; haciendolo por separado x/2*pi = (x/2)/pi no modifico las mascaras evitando
+		; aumentar errores en futuros pixeles 
+
 
 		; ######################## obtengo la parte entera ###############################
 		; VER COMO FUNCIONA LA INSTRUCCION "ROUNDPS"
 
-		CVTTPS2DQ xmm6,xmm6
-		CVTTPS2DQ xmm7,xmm7
-		CVTTPS2DQ xmm8,xmm8
-		CVTTPS2DQ xmm9,xmm9
+		CVTTPS2DQ xmm12,xmm12
+		CVTTPS2DQ xmm13,xm13
 
-		CVTDQ2PS xmm6,xmm6
-		CVTDQ2PS xmm7,xmm7
-		CVTDQ2PS xmm8,xmm8
-		CVTDQ2PS xmm9,xmm9
+
+		CVTDQ2PS xmm12,xmm12
+		CVTDQ2PS xmm13,xm13
 
 		; ######################### R = x - K*2*pi ######################################
 
-		MULPS xmm6,xmm0 	; k <- k*2*pi
-		MULPS xmm7,xmm0 	; k <- k*2*pi
-		MULPS xmm8,xmm0 	; k <- k*2*pi
-		MULPS xmm9,xmm0 	; k <- k*2*pi
+		MULPS xmm12,xmm3 	; xmm12 <- k*pi
+		MULPS xmm13,xmm3	; xmm13 <- k*pi
 
-		SUBPS xmm2,xmm6 	; r <- x - k*2*pi
-		SUBPS xmm3,xmm7 	; r <- x - k*2*pi
-		SUBPS xmm4,xmm8 	; r <- x - k*2*pi
-		SUBPS xmm5,xmm9 	; r <- x - k*2*pi
+		MULPS xmm12,xmm4 	; xmm12 <- k*2*pi
+		MULPS xmm13,xmm4	; xmm13 <- k*2*pi
+
+
+		SUBPS xmm10,xmm12 	; xmm10 <- x - k*2*pi
+		SUBPS xmm11,xmm13 	; xmm11 <- x - k*2*pi
 
 		; ############################### X = R - pi ##################################
 
-		MULPS xmm0,xmm1 	; xmm0 <- pi
-
-		SUBPS xmm2,xmm0 	; x <- r - pi
-		SUBPS xmm3,xmm0 	; x <- r - pi
-		SUBPS xmm4,xmm0 	; x <- r - pi
-		SUBPS xmm5,xmm0 	; x <- r - pi
+		SUBPS xmm10,xmm3 	; x <- r - pi
+		SUBPS xmm11,xmm3 	; x <- r - pi
 
 		; #################### Y = X - X³/6 + X⁵/120 - X⁵/5040 ####################
 
 		; ############################### Y = X  ##################################
 
-		MOVDQU xmm6,xmm2
-		MOVDQU xmm7,xmm3
-		MOVDQU xmm8,xmm4
-		MOVDQU xmm9,xmm5
+		MOVDQU xmm12,xmm10
+		MOVDQU xmm13,xmm11
 
 		; ############################### x³/6 #####################################
 		
-		MOVDQU xmm10,xmm2
-		MOVDQU xmm11,xmm3
-		MOVDQU xmm12,xmm4
-		MOVDQU xmm13,xmm5
+		MOVDQU xmm14,xmm10
+		MOVDQU xmm15,xmm11
 
 		; x*x = x²
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
 		; x²*x = x³
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		MOVDQU xmm14,[seis]
-
-		DIVPS xmm10,xmm14
-		DIVPS xmm11,xmm14
-		DIVPS xmm12,xmm14
-		DIVPS xmm13,xmm14
+		; x³/6
+		DIVPS xmm14,xmm7
+		DIVPS xmm15,xmm7
 
 		; ############################ Y = x - x³/6 ################################
 
-		SUBPS xmm6,xmm10
-		SUBPS xmm7,xmm11
-		SUBPS xmm8,xmm12
-		SUBPS xmm9,xmm13
+		SUBPS xmm12,xmm14
+		SUBPS xmm13,xmm15
+
 
 		; ############################### x⁵/120 #####################################
 
 
-		MOVDQU xmm10,xmm2
-		MOVDQU xmm11,xmm3
-		MOVDQU xmm12,xmm4
-		MOVDQU xmm13,xmm5
+		MOVDQU xmm14,xmm10
+		MOVDQU xmm15,xmm11
 
-		; x²
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		; x*x = x²
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		; x²*x² = x⁴
-		MULPS xmm10,xmm10 
-		MULPS xmm11,xmm11
-		MULPS xmm12,xmm12
-		MULPS xmm13,xmm13
+		; x²*x² = x^4
+		MULPS xmm14,xmm14
+		MULPS xmm15,xmm15
 
-		; x⁴*x = x⁵
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		; x^4*x = x⁵
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
+
+		; x⁵/120
+		DIVPS xmm14,xmm8
+		DIVPS xmm15,xmm8
 
 
-		MOVDQU xmm14,[cientoVeinte]
-
-		DIVPS xmm10,xmm14
-		DIVPS xmm11,xmm14
-		DIVPS xmm12,xmm14
-		DIVPS xmm13,xmm14
 
 		; ########################## Y = x -x³/6 + x⁵/120 ############################
 
-		ADDPS xmm6,xmm10
-		ADDPS xmm7,xmm11
-		ADDPS xmm8,xmm12
-		ADDPS xmm9,xmm13
+		ADDPS xmm12,xmm14
+		ADDPS xmm13,xmm15
 
 
 		; ############################### x⁷/5040 #####################################
 
 
-		MOVDQU xmm10,xmm2
-		MOVDQU xmm11,xmm3
-		MOVDQU xmm12,xmm4
-		MOVDQU xmm13,xmm5
+		MOVDQU xmm14,xmm10
+		MOVDQU xmm15,xmm11
 
 		; x*x = x²
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		; x²*x² = x⁴
-		MULPS xmm10,xmm10
-		MULPS xmm11,xmm10
-		MULPS xmm12,xmm10
-		MULPS xmm13,xmm10
+		; x²*x² = x^4
+		MULPS xmm14,xmm14
+		MULPS xmm15,xmm15
 
-		; x⁴*x = x⁵
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		; x^4*x = x⁵
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		; x⁵*x = x⁶
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		; x^5*x = x6
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		; x⁶*x = x⁷
-		MULPS xmm10,xmm2
-		MULPS xmm11,xmm3
-		MULPS xmm12,xmm4
-		MULPS xmm13,xmm5
+		; x^6*x = x⁷
+		MULPS xmm14,xmm10
+		MULPS xmm15,xmm11
 
-		MOVDQU xmm14,[cincoMilCuarenta]
-
-		DIVPS xmm10,xmm14
-		DIVPS xmm11,xmm14
-		DIVPS xmm12,xmm14
-		DIVPS xmm13,xmm14
+		; x⁷/5040
+		DIVPS xmm14,xmm9
+		DIVPS xmm15,xmm9
 
 		; ########################## Y = x -x³/6 + x⁵/120 - x⁷/5040 ############################
 
-		SUBPS xmm6,xmm10
-		SUBPS xmm7,xmm11
-		SUBPS xmm8,xmm12
-		SUBPS xmm9,xmm13
+		SUBPS xmm12,xmm14
+		SUBPS xmm13,xmm15
 
 		; ############################# ESTADO DE LOS REGISTROS ##############################
 
-		; xmm6 <- sin_taylor(j/8)
-		; xmm7 <- sin_taylor(j+4/8)
-		; xmm8 <- sin_taylor(j+12/8)
-		; xmm9 <- sin_taylor(j+16/8)
+		
+		; xmm12 <- sin_taylor((j+3).0/8.0), sin_taylor((j+2).0/8.0), sin_taylor((j+1).0/8.0), sin_taylor((j).0/8.0),
+		; xmm13 <- sin_taylor((j+7).0/8.0), sin_taylor((j+6).0/8.0), sin_taylor((j+5).0/8.0), sin_taylor((j+4).0/8.0),
 
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ////////////////////// FUNCION DE TAYLOR PARA LOS i/80 /////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		MOVD xmm2,r13
-		MOVDQU xmm3,[ochenta]
-		DIVPS xmm2,xmm3
-
-		MULPS xmm0,xmm1 	; xmm0 <- 2*pi
+		MOVD xmm10,r13d 		; xmm10 <- basura,basura,basura,i
+		SHUFPS xmm10,xmm10,0 	; xmm10 <- i,i,i,i
+		CVTDQ2PS xmm10,xmm10 	; xmm10 <- i.0,i.0,i.0,i.0
+		
+		DIVPS xmm10,xmm4 		; xmm10 <- i.0/2.0,i.0/2.0,i.0/2.0,i.0/2.0
+		DIVPS xmm10,xmm4 		; xmm10 <- i.0/4.0,i.0/4.0,i.0/4.0,i.0/4.0
+		DIVPS xmm10,xmm4 		; xmm10 <- i.0/8.0,i.0/8.0,i.0/8.0,i.0/8.0
 
 		; ############################### K = [x/(2*pi)] #################################
 
-		MOVDQU xmm3,xmm2
-		DIVPS xmm3,xmm0 	; k <- x/(2*pi)
+		MOVDQU xmm11,xmm10
+		DIVPS xmm11,xmm3 		; xmm11 <- x/pi
+		DIVPS xmm11,xmm4 		; xmm11 <- x/2*pi
 
 
 		; ######################## obtengo la parte entera ###############################
+		; VER SI UTILIZO LA FUNCION ROUNDPS
 
-		CVTTPS2DQ xmm3,xmm3
-		CVTDQ2PS xmm3,xmm3
+		CVTTPS2DQ xmm11,xmm11
+		CVTDQ2PS xmm11,xmm11
 
 		; ######################### R = x - K*2*pi ######################################
 
-		MULPS xmm3,xmm0 	; k <- k*2*pi
-		MOVDQU xmm4,xmm2
-		SUBPS xmm4,xmm6 	; r <- x - k*2*pi
+		MULPS xmm11,xmm4 	; xmm11 <- k*2
+		MULPS xmm11,xmm3 	; xmm11 <- k*2*pi
+
+		SUBPS xmm10,xmm11 	; xmm10 <- x - k*2*pi
 
 		; ############################### X = R - pi ##################################
 
-		DIVPS xmm0,xmm1 	; xmm0 <- pi
-		MOVDQU xmm2,xmm4
-		SUBPS xmm2,xmm0 	; x <- r - pi
+		SUBPS xmm10,xmm3 	; x <- r - pi
 
 		; #################### Y = X - X³/6 + X⁵/120 - X⁷/5040 ####################
 
 		; ############################### Y = X  ##################################
 
-		MOVDQU xmm3,xmm2
+		MOVDQU xmm11,xmm10
 
 		; ############################### x³/6 #####################################
 		
-		MOVDQU xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MOVDQU xmm14,[seis]
-		DIVPS xmm4,xmm14
+		MOVDQU xmm14,xmm10
+		MULPS xmm14,xmm10
+		MULPS xmm14,xmm10
+		DIVPS xmm14,xmm7
 
 
 		; ############################ Y = x - x³/6 ################################
 
-		SUBPS xmm3,xmm4
+		SUBPS xmm11,xmm14
 
 		; ############################### x⁵/120 #####################################
 		
-		MOVDQU xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MOVDQU xmm14,[cientoVeinte]
-		DIVPS xmm4,xmm14
+		MOVDQU xmm14,xmm10
+		MULPS xmm14,xmm10
+		MULPS xmm14,xmm14
+		MULPS xmm14,xmm10
+		DIVPS xmm14,xmm8
 
 
 		; ############################ Y = x + x⁵/6 ################################
 
-		ADDPS xmm3,xmm4
+		ADDPS xmm11,xmm14
 
 		; ############################### x⁷/5040 ##################################
 		
-		MOVDQU xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MULPS xmm4,xmm2
-		MOVDQU xmm14,[cincoMilCuarenta]
-		DIVPS xmm4,xmm14
+		MOVDQU xmm14,xmm10
+		MULPS xmm14,xmm10
+		MULPS xmm14,xmm14
+		MULPS xmm14,xmm10
+		MULPS xmm14,xmm10
+		MULPS xmm14,xmm10
+		DIVPS xmm14,xmm9
 
 
 		; ############################ Y = x + x⁵/6 - x⁷/5040 #########################
 
-		SUBPS xmm3,xmm4
-		PXOR xmm4,xmm4
-		MOVDQU xmm4,xmm3
-		PSLLDQ xmm4,4
-		POR xmm4,xmm3
-		PSLLDQ xmm4,4
-		POR xmm4,xmm3
-		PSLLDQ xmm4,4
-		POR xmm4,xmm3
+		SUBPS xmm11,xmm14
 
 		; ######################## ESTADO DE LOS REGISTROS #############################
 
-		; xmm6 <- sin_taylor(j/8)
-		; xmm7 <- sin_taylor(j+4/8)
-		; xmm8 <- sin_taylor(j+12/8)
-		; xmm9 <- sin_taylor(j+16/8)
-		; xmm4 <- sin_taylor(i/8)
+		; xmm11 <- sin_taylor(i.0/8.0), sin_taylor(i.0/8.0), sin_taylor(i.0/8.0), sin_taylor(i.0/8.0)
+		; xmm12 <- sin_taylor((j+3).0/8.0), sin_taylor((j+2).0/8.0), sin_taylor((j+1).0/8.0), sin_taylor((j).0/8.0)
+		; xmm13 <- sin_taylor((j+7).0/8.0), sin_taylor((j+6).0/8.0), sin_taylor((j+5).0/8.0), sin_taylor((j+4).0/8.0)
 
 
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ////////////////////////////// PROF DE I,J /////////////////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		; ##################### HAGO POP DE LOS X_sacale,y_scale,g_scale ###################
 
-		MOVDQU xmm5,xmm1
+		MULPS xmm11,xmm0 	; xmm11 <- x_sacale*sin_taylor(i.0/8.0), x_sacale*sin_taylor(i.0/8.0), x_sacale*sin_taylor(i.0/8.0), x_sacale*sin_taylor(i.0/8.0)
 
-		POP xmm0
-		POP xmm1
-		POP xmm2 
+		MULPS xmm12,xmm1 	; xmm12 <- y_scale*sin_taylor((j+3).0/8.0), y_scale*sin_taylor((j+2).0/8.0), y_scale*sin_taylor((j+1).0/8.0), y_scale*sin_taylor((j).0/8.0)
+		MULPS xmm13,xmm1 	; xmm13 <- y_scale*sin_taylor((j+7).0/8.0), y_scale*sin_taylor((j+6).0/8.0), y_scale*sin_taylor((j+5).0/8.0), y_scale*sin_taylor((j+4).0/8.0)
 
-		MULPS xmm4,xmm0
+		ADDPS xmm12,xmm11 	; xmm12 <- x_sacale*sin_taylor(i.0/8.0) + y_scale*sin_taylor((j+3).0/8.0), ... ,x_sacale*sin_taylor(i.0/8.0) + y_scale*sin_taylor((j).0/8.0)
+		ADDPS xmm13,xmm11 	; xmm13 <- x_sacale*sin_taylor(i.0/8.0) + y_scale*sin_taylor((j+7).0/8.0), ... ,x_sacale*sin_taylor(i.0/8.0) + y_scale*sin_taylor((j+4).0/8.0)
 
-		MULPS xmm6,xmm1
-		MULPS xmm7,xmm1
-		MULPS xmm8,xmm1
-		MULPS xmm9,xmm1
-
-		ADDPS xmm6,xmm4
-		ADDPS xmm7,xmm4
-		ADDPS xmm8,xmm4
-		ADDPS xmm9,xmm4
-
-		DIVPS xmm6,xmm1
-		DIVPS xmm7,xmm1
-		DIVPS xmm8,xmm1
-		DIVPS xmm9,xmm1
+		DIVPS xmm12,xmm4 	; xmm12 <- Prof(i,j+3), ... ,Prof(i,j)
+		DIVPS xmm13,xmm4 	; xmm13 <- Prof(i,j+7), ... ,Prof(i,j+4)
 
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ////////////////////////////// I_dest(i,j) /////////////////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		MULPS xmm6,xmm2
-		MULPS xmm7,xmm2
-		MULPS xmm8,xmm2
-		MULPS xmm9,xmm2
+		MULPS xmm12,xmm2 	; xmm12 <- Prof(i,j+3)*g_scale, ... ,Prof(i,j)*g_scale
+		MULPS xmm13,xmm2 	; xmm13 <- Prof(i,j+7)*g_scale, ... ,Prof(i,j+4)*g_scale
+
 
 		; ################## RECUPERO Y DESEMPAQUETO LOS DATOS DE LAIMAGEN ##############
+		
+		; ##############################################################################################################
+		; ##################### PUEDO SOLO DISTINGUIR PARA DESCARGAR DATOS Y LUEGO SEGUIR EN UNA LINEA #################
+		; ##############################################################################################################
 
-		MOVDQU xmm2,[rdi] 		; muevo los 16 bytes siguientes a xmm2
+		CMP r10,1
+		JE .UsarParteAlta
+
+		CMP r10,-1
+		JE .UsarParteAlta
+
+		; si no salto es porque hay 16 byte por delante o mas y voy usando la parte baja
+		MOVDQU xmm14,[rdi] 			; xmm10 <- [rdi+15, ... ,rdi+0]
 		
 		; desempaqueto de Byte a Word
-		MOVDQU xmm4,xmm2 			; hago una copia para el desempaquetamiento
-		PXOR xmm10,xmm10 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
-		PUNPCKLBW xmm2,xmm10 	
-		PUNPCKHBW xmm4,xmm10
+		PXOR xmm11,xmm11 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
+		PUNPCKLBW xmm14,xmm11 		; xmm14 <- [rdi+7, ... ,rdi]	
+
 
 		; desempaqueto de Word a Doubleword
-		MOVDQU xmm3,xmm2
-		MOVDQU xmm5,xmm4
-		PUNPCKLWD xmm2,xmm10
-		PUNPCKHWD xmm3,xmm10
-		PUNPCKLWD xmm4,xmm10
-		PUNPCKHWD xmm5,xmm10
+		MOVDQU xmm15,xmm14
+		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [rdi+3, ... ,rdi]
+		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [rdi+7, ... ,rdi+4]
 
 		; convierto a punto flotantes
 
-		CVTDQ2PS xmm2,xmm2
-		CVTDQ2PS xmm3,xmm3
-		CVTDQ2PS xmm4,xmm4
-		CVTDQ2PS xmm5,xmm5
+		CVTDQ2PS xmm14,xmm14 		; xmm14 <- [(rdi+3).0, ... ,(rdi).0]
+		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+7).0, ... ,(rdi+4).0]
 
-		ADDPS xmm2,xmm6
-		ADDPS xmm3,xmm7
-		ADDPS xmm4,xmm8
-		ADDPS xmm5,xmm9
+		ADDPS xmm14,xmm12			; xmm14 <- Prof(i,j+3)*g_scale + (rdi+3).0, ... ,Prof(i,j)*g_scale + (rdi).0
+		ADDPS xmm14,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+7).0, ... ,Prof(i,j+4)*g_scale + (rdi+4).0
 
 		; ########################## CONVIERTO A ENTEROS ##################################
 
-		CVTTPS2DQ xmm2,xmm2
-		CVTTPS2DQ xmm3,xmm3
-		CVTTPS2DQ xmm4,xmm4
-		CVTTPS2DQ xmm5,xmm5
-
-		MOVDQU xmm6,xmm2
-		MOVDQU xmm7,xmm3
-		MOVDQU xmm8,xmm4
-		MOVDQU xmm9,xmm5
+		CVTTPS2DQ xmm14,xmm14 		; xmm14 <- [Prof(i,j+3)*g_scale + (rdi+3).0], ... ,[Prof(i,j)*g_scale + (rdi).0]
+		CVTTPS2DQ xmm15,xmm15 		; xmm15 <- [Prof(i,j+7)*g_scale + (rdi+7).0], ... ,[Prof(i,j+4)*g_scale + (rdi+4).0]
 
 		; ########################## EMPAQUETO SATURANDO ##################################
 		
 		; empaqueto de doubleWord a word
-		PACKSSDW xmm6,xmm7
-		PACKSSDW xmm8,xmm9
+		PACKSSDW xmm14,xmm15
 
 		; empaqueto de word a bytes
-		PACKSSWB xmm6,xmm8
+		PACKSSWB xmm14,xmm14
 
 		; guardo los datos en el destino
-		MOVDQU [rsi],xmm6
+		MOVQ [rsi],xmm14
+		JMP .configurarIteracion
+
+	.UsarParteAlta:
+		; llegue a esta parte es porque estoy en el ultimo ciclo o en el ultimo tramo y en amvos utilizo la parte alta
+		MOVDQU xmm14,[rdi] 			; xmm10 <- [rdi+15, ... ,rdi+0]
 		
+		; desempaqueto de Byte a Word
+		PXOR xmm11,xmm11 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
+		PUNPCKHBW xmm14,xmm11 		; xmm14 <- [rdi+15, ... ,rdi+8]	
+
+
+		; desempaqueto de Word a Doubleword
+		MOVDQU xmm15,xmm14
+		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [rdi+11, ... ,rdi+8]
+		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [rdi+15, ... ,rdi+12]
+
+		; convierto a punto flotantes
+
+		CVTDQ2PS xmm14,xmm14 		; xmm14 <- [(rdi+11).0, ... ,(rdi+8).0]
+		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+15).0, ... ,(rdi+12).0]
+
+		ADDPS xmm14,xmm12			; xmm14 <- Prof(i,j+3)*g_scale + (rdi+11).0, ... ,Prof(i,j)*g_scale + (rdi+8).0
+		ADDPS xmm14,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+15).0, ... ,Prof(i,j+4)*g_scale + (rdi+12).0
+
+		; ########################## CONVIERTO A ENTEROS ##################################
+
+		CVTTPS2DQ xmm14,xmm14 		; xmm14 <- [Prof(i,j+3)*g_scale + (rdi+11).0], ... ,[Prof(i,j)*g_scale + (rdi+8).0]
+		CVTTPS2DQ xmm15,xmm15 		; xmm15 <- [Prof(i,j+7)*g_scale + (rdi+15).0], ... ,[Prof(i,j+4)*g_scale + (rdi+12).0]
+
+		; ########################## EMPAQUETO SATURANDO ##################################
+		
+		; empaqueto de doubleWord a word
+		PACKSSDW xmm14,xmm15
+
+		; empaqueto de word a bytes
+		PACKSSWB xmm14,xmm14
+
+		; guardo los datos en el destino
+		MOVQ [rsi],xmm14
+		
+	.configurarIteracion
+
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ///////////////// configuro la iteración del ciclo /////////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
+
+		; ############# REGISTROS PARA EL LOOP ###########################################
+		; rcx <- m - filas iteradas
+		; rbx <- queda_ultimo_tramo o no
+		; r10 <- [n/8] - ciclos iterados
+		; r14 <- [n/8]
+		; r15 <- 8 - (n mod 8)
+		; ###############################################################################
 
 
 		DEC r10 	; decremento la cantidad de iteraciones que me faltan para terminar la fila actual
@@ -594,11 +543,14 @@ waves_asm:
 		CMP r10,-1
 		JE .saltear_proxima_linea
 
-		; si no termine las iteraciones entonces solo sumo 16 para pasar al proximo ciclo
+		; si no termine las iteraciones entonces solo sumo 8 para pasar al proximo ciclo menos en la ultima vuelta donde no sumo nada
 	.siguienteCiclo:
-		ADD rdi,16
-		ADD rsi,16
-		ADD r13,16 	
+		ADD r13,8 
+		CMP r10,1
+		JE.finCiclo
+
+		ADD rdi,8
+		ADD rsi,8	
 		JMP .finCiclo
 
 		; si termine las iteraciones entonces me fijo si tengo que saltar directamente a la proxima fila o si queda un tramo menor a 16 por recorrer
@@ -606,10 +558,10 @@ waves_asm:
 		CMP rbx,No_Tiene_ultimo_tramo
 		JE .saltear_proxima_linea 		; si no hay ultimo tramo salto directamente a la proxima fila a procesar 
 
-		; si no salto es porque puede haber un ultimo tramo a recorrer
-		; en tal caso me fijo si ya lo hice o no
-		SUB rdi,r15
-		SUB rsi,r15
+		; si no salto es porque hay un ultimo tramo a recorrer
+		ADD rdi,r15
+		ADD rsi,r15
+		ADD r13,r15
 		JMP .finCiclo
 
 	.saltear_proxima_linea:
@@ -618,7 +570,7 @@ waves_asm:
 		ADD rsi,16	
 		LEA rdi,[rdi + r15] ; le cargo el padding
 		LEA rsi,[rsi + r15]
-		INC r12
+		INC r12 			; r12 <- i++
 
 
 .finCiclo:
