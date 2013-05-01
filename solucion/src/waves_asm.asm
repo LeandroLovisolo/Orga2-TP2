@@ -30,7 +30,6 @@ section .rodata
 
 pi: DD 3.14159265359, 3.14159265359, 3.14159265359, 3.14159265359
 dos: DD 2.0, 2.0, 2.0, 2.0
-ocho: DD 8.0, 8.0, 8.0, 8.0
 jotas1: DD 0.0, 1.0, 2.0, 3.0
 jotas2: DD 4.0, 5.0, 6.0, 7.0
 seis: DD 6.0, 6.0, 6.0, 6.0
@@ -149,8 +148,8 @@ waves_asm:
 		MOVDQU xmm11,xmm10 		; xmm11 <- j.0,j.0,j.0,j.0
 
 		; a registros de j les sumo 0, ... ,7
-		PADDW xmm10,xmm5 		; xmm10 <- (j+3).0, ... ,j.0
-		PADDW xmm11,xmm6 		; xmm11 <- (j+7).0, ... ,(j+4).0
+		ADDPS xmm10,xmm5 		; xmm10 <- (j+3).0, ... ,j.0
+		ADDPS xmm11,xmm6 		; xmm11 <- (j+7).0, ... ,(j+4).0
 
 		; ######################### DIVIDO POR 2 HASTA DIVIDIR POR 8 #######################
 
@@ -192,11 +191,11 @@ waves_asm:
 		; VER COMO FUNCIONA LA INSTRUCCION "ROUNDPS"
 
 		CVTTPS2DQ xmm12,xmm12
-		CVTTPS2DQ xmm13,xm13
+		CVTTPS2DQ xmm13,xmm13
 
 
 		CVTDQ2PS xmm12,xmm12
-		CVTDQ2PS xmm13,xm13
+		CVTDQ2PS xmm13,xmm13
 
 		; ######################### R = x - K*2*pi ######################################
 
@@ -517,7 +516,7 @@ waves_asm:
 		; guardo los datos en el destino
 		MOVQ [rsi],xmm14
 		
-	.configurarIteracion
+	.configurarIteracion:
 
 		; ////////////////////////////////////////////////////////////////////////////////
 		; ///////////////// configuro la iteración del ciclo /////////////////////////////
@@ -547,7 +546,7 @@ waves_asm:
 	.siguienteCiclo:
 		ADD r13,8 
 		CMP r10,1
-		JE.finCiclo
+		JE .finCiclo
 
 		ADD rdi,8
 		ADD rsi,8	
@@ -571,11 +570,12 @@ waves_asm:
 		LEA rdi,[rdi + r15] ; le cargo el padding
 		LEA rsi,[rsi + r15]
 		INC r12 			; r12 <- i++
+		DEC rcx 			; m - lineas procesadas
 
 
-.finCiclo:
-
-		LOOP .ciclo
+	.finCiclo:
+		CMP rcx,0
+		JNE .ciclo
 
 
 .fin:
