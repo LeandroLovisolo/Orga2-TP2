@@ -3,12 +3,12 @@
 // terminar esto, no se en que punto quieren que la evalue
 float sin_taylor (float x) {
 
+
 	const float pi 	= 3.14159265359;
 	int k 			= floor(x/(2*pi));
 	float r 		= x - k*2*pi;
 	x 				= r - pi;
 	float y 		= x - (pow(x,3)/6) + (pow(x,5)/120) - (pow(x,7)/5040);
-
 	return y;
 }
 

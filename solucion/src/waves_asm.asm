@@ -319,7 +319,7 @@ waves_asm:
 		; ////////////////////// FUNCION DE TAYLOR PARA LOS i/80 /////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		MOVD xmm10,r13d 		; xmm10 <- basura,basura,basura,i
+		MOVD xmm10,r12d 		; xmm10 <- basura,basura,basura,i
 		SHUFPS xmm10,xmm10,0 	; xmm10 <- i,i,i,i
 		CVTDQ2PS xmm10,xmm10 	; xmm10 <- i.0,i.0,i.0,i.0
 		
