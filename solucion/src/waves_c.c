@@ -37,6 +37,8 @@ void waves_c (
 			else if(newValue < 0) newValue = 0;
 
 			unsigned int value = floor(newValue);
+
+			if (i == 0 && j == 0) printf("%i\n",value);
 			dst_matrix[i][j] = value;
 		}
 	}

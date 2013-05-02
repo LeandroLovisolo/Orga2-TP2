@@ -142,7 +142,7 @@ waves_asm:
 		; ////////////////////////////////////////////////////////////////////////////////
 
 		; obtengo los j
-		MOVD xmm10,r13d 		; xmm10 <- basura,basura,basura,j
+		MOVQ xmm10,r13  		; xmm10 <- basura,basura,basura,j
 		SHUFPS xmm10,xmm10,0  	; xmm10 <- j,j,j,j
 		CVTDQ2PS xmm10,xmm10 		; convierto los J's a punto flotante de simple presicion
 		MOVDQU xmm11,xmm10 		; xmm11 <- j.0,j.0,j.0,j.0
@@ -319,7 +319,7 @@ waves_asm:
 		; ////////////////////// FUNCION DE TAYLOR PARA LOS i/80 /////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		MOVD xmm10,r12d 		; xmm10 <- basura,basura,basura,i
+		MOVQ xmm10,r12 		; xmm10 <- basura,basura,basura,i
 		SHUFPS xmm10,xmm10,0 	; xmm10 <- i,i,i,i
 		CVTDQ2PS xmm10,xmm10 	; xmm10 <- i.0,i.0,i.0,i.0
 		
@@ -460,7 +460,7 @@ waves_asm:
 		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+7).0, ... ,(rdi+4).0]
 
 		ADDPS xmm14,xmm12			; xmm14 <- Prof(i,j+3)*g_scale + (rdi+3).0, ... ,Prof(i,j)*g_scale + (rdi).0
-		ADDPS xmm14,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+7).0, ... ,Prof(i,j+4)*g_scale + (rdi+4).0
+		ADDPS xmm15,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+7).0, ... ,Prof(i,j+4)*g_scale + (rdi+4).0
 
 		; ########################## CONVIERTO A ENTEROS ##################################
 
@@ -473,7 +473,7 @@ waves_asm:
 		PACKSSDW xmm14,xmm15
 
 		; empaqueto de word a bytes
-		PACKSSWB xmm14,xmm14
+		PACKUSWB xmm14,xmm14
 
 		; guardo los datos en el destino
 		MOVQ [rsi],xmm14
@@ -499,7 +499,7 @@ waves_asm:
 		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+15).0, ... ,(rdi+12).0]
 
 		ADDPS xmm14,xmm12			; xmm14 <- Prof(i,j+3)*g_scale + (rdi+11).0, ... ,Prof(i,j)*g_scale + (rdi+8).0
-		ADDPS xmm14,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+15).0, ... ,Prof(i,j+4)*g_scale + (rdi+12).0
+		ADDPS xmm15,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+15).0, ... ,Prof(i,j+4)*g_scale + (rdi+12).0
 
 		; ########################## CONVIERTO A ENTEROS ##################################
 
@@ -512,7 +512,7 @@ waves_asm:
 		PACKSSDW xmm14,xmm15
 
 		; empaqueto de word a bytes
-		PACKSSWB xmm14,xmm14
+		PACKUSWB xmm14,xmm14
 
 		; guardo los datos en el destino
 		MOVQ [rsi],xmm14
@@ -545,12 +545,12 @@ waves_asm:
 
 		; si no termine las iteraciones entonces solo sumo 8 para pasar al proximo ciclo menos en la ultima vuelta donde no sumo nada
 	.siguienteCiclo:
-		ADD r13,8 
+		ADD r13,8  		; r13 <- j = j+8 paso a los siguientes
+		ADD rsi,8
 		CMP r10,1
 		JE .finCiclo
 
-		ADD rdi,8
-		ADD rsi,8	
+		ADD rdi,8	
 		JMP .finCiclo
 
 		; si termine las iteraciones entonces me fijo si tengo que saltar directamente a la proxima fila o si queda un tramo menor a 16 por recorrer
@@ -567,9 +567,10 @@ waves_asm:
 	.saltear_proxima_linea:
 		MOV r10,r14 		; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
 		ADD rdi,16
-		ADD rsi,16	
+		ADD rsi,8	
 		LEA rdi,[rdi + r15] ; le cargo el padding
 		LEA rsi,[rsi + r15]
+		MOV r13,0 			; r13 <-j = 0
 		INC r12 			; r12 <- i++
 		DEC rcx 			; m - lineas procesadas
 
