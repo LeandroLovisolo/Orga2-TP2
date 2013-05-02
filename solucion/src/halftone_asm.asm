@@ -24,8 +24,12 @@ global halftone_asm
 
 section .rodata
 
-mascara_impares: DQ 0x0011001100110011,0x0011001100110011
-mascara_pares: DQ 0x1100110011001100,0x1100110011001100
+mascara_impares: DQ 0x00ff00ff00ff00ff,0x00ff00ff00ff00ff
+mascara_pares: DQ 0xff00ff00ff00ff00,0xff00ff00ff00ff00
+dosCientosCinco: DW 205, 205, 205, 205, 205, 205, 205, 205
+cuatroCientosDiez: DW 410, 410, 410, 410, 410, 410, 410, 410 
+seisCientosQuince: DW 615, 615, 615, 615, 615, 615, 615, 615
+ochoCientosVeinte: DW 820, 820, 820, 820, 820, 820, 820, 820
 
 section .text
 
@@ -58,7 +62,7 @@ halftone_asm:
 	MOV eax,ecx
 	IDIV r12 				; eax = parte entera(n/16), edx = resto de la divicion
 	MOV r14,rax 			; r14d = parte entera(n/16)
-	MOV rbx,r14 			; r11d = parte entera de(n/16)
+	MOV rbx,r14 			; rbx = parte entera de(n/16)
 	
 
 
@@ -78,33 +82,10 @@ halftone_asm:
 	; seteo todos los datos necesarios una sola vez para todos los ciclos
 	; registros xmm12-xmm15 con los valores 205,410,615,820 respectivamente
 	
-	MOV rax,205
-	MOVQ xmm12,rax
-	PSHUFLW xmm12,xmm12,0
-	MOVDQU xmm9,xmm12
-	PSLLDQ xmm9,8
-	POR xmm12,xmm9
-
-	MOV rax,410
-	MOVQ xmm13,rax
-	PSHUFLW xmm13,xmm13,0
-	MOVDQU xmm9,xmm13
-	PSLLDQ xmm9,8
-	POR xmm13,xmm9
-	
-	MOV rax,615
-	MOVQ xmm14,rax
-	PSHUFLW xmm14,xmm14,0
-	MOVDQU xmm9,xmm14
-	PSLLDQ xmm9,8
-	POR xmm14,xmm9
-
-	MOV rax,820
-	MOVQ xmm15,rax
-	PSHUFLW xmm15,xmm15,0
-	MOVDQU xmm9,xmm15
-	PSLLDQ xmm9,8
-	POR xmm15,xmm9
+	MOVDQU xmm12,[dosCientosCinco]
+	MOVDQU xmm13,[cuatroCientosDiez]
+	MOVDQU xmm14,[seisCientosQuince]
+	MOVDQU xmm15,[ochoCientosVeinte]
 
 	MOVDQU xmm11,[mascara_impares]
 	MOVDQU xmm10,[mascara_pares]
