@@ -1,9 +1,10 @@
 #include <math.h>
+
 void rotar_c (
     unsigned char *src,
     unsigned char *dst,
-    int m,//Height
-    int n, //Width
+    int m,
+    int n,
     int src_row_size,
     int dst_row_size
 ) {
