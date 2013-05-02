@@ -22,6 +22,8 @@ void halftone_c (
 			t += src_matrix[i+1][j];
 			t += src_matrix[i+1][j+1];
 
+			if( j == 174 && i == 0) printf("%i\n",t);
+
 			if(t < 205){
 
 				dst_matrix[i][j] 		= 0;

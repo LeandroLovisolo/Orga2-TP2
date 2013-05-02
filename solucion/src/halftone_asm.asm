@@ -24,8 +24,9 @@ global halftone_asm
 
 section .rodata
 
-mascara_impares: DQ 0x00ff00ff00ff00ff,0x00ff00ff00ff00ff
-mascara_pares: DQ 0xff00ff00ff00ff00,0xff00ff00ff00ff00
+mascara_unos: DQ 0xffffffffffffffff,0xffffffffffffffff
+mascara_pares: DQ 0x00ff00ff00ff00ff,0x00ff00ff00ff00ff
+mascara_impares: DQ 0xff00ff00ff00ff00,0xff00ff00ff00ff00
 dosCientosCinco: DW 205, 205, 205, 205, 205, 205, 205, 205
 cuatroCientosDiez: DW 410, 410, 410, 410, 410, 410, 410, 410 
 seisCientosQuince: DW 615, 615, 615, 615, 615, 615, 615, 615
@@ -89,6 +90,7 @@ halftone_asm:
 
 	MOVDQU xmm11,[mascara_impares]
 	MOVDQU xmm10,[mascara_pares]
+	MOVDQU xmm9,[mascara_unos]
 
 	; ////////////////////////////////////////////////////////////////////////////////
 	; /////////////////// COMIENZA EL CICLO PARA RECORRER LA IMAGEN //////////////////
@@ -140,36 +142,40 @@ halftone_asm:
 		; //////////////////////////// ARMO LA MASCARA ///////////////////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
-		; primer caso: t < 205
-		MOVDQU xmm0,xmm1
-		PCMPGTW xmm0,xmm12
+		; 
+		; primer caso: t >= 205
+		MOVDQU xmm0,xmm12
+		PCMPGTW xmm0,xmm1
+		PXOR xmm0,xmm9
 
 		; le pongo 0's a los lugares que no le corresponden. Estos son los lugares pares de la primera fila xmm0, ya que 
 		; si t > 205 en el lugar (1,1) el cuadrado seguro es blanco, 255 = 0x11111111
 		PAND xmm0,xmm10
 
-		; segundo caso t > 410
-		MOVDQU xmm2,xmm1
-		PCMPGTW xmm2,xmm13
-
+		; segundo caso t >= 410
+		MOVDQU xmm2,xmm13
+		PCMPGTW xmm2,xmm1
+		PXOR xmm2,xmm9
 		; le pongo 0's a los lugares que no le corresponden
 		PAND xmm2,xmm11 
 
-		; tercer caso t > 615
-		MOVDQU xmm3,xmm1
-		PCMPGTW xmm3,xmm14
+		; tercer caso t >= 615
+		MOVDQU xmm3,xmm14
+		PCMPGTW xmm3,xmm1
+		PXOR xmm3,xmm9
 
 		; le pongo 0's a los lugares que no le corresponden
 		PAND xmm3,xmm10 
 
-		; cuarto caso t > 820
-		PCMPGTW xmm1,xmm15
-
+		; cuarto caso t >= 820
+		MOVDQU xmm4,xmm15
+		PCMPGTW xmm4,xmm1
+		PXOR xmm4,xmm9
 		; le pongo 0's a los lugares que no le corresponden
-		PAND xmm1,xmm11
+		PAND xmm4,xmm11
 
 		; junto los resultados de la primera linea que esta actualmente en xmm0,xmm1 vertiendolo todo en xmm0
-		POR xmm0,xmm1
+		POR xmm0,xmm4
 
 		; lo mismo para la segunda fila que esta en xmm2,xmm3
 		POR xmm2,xmm3

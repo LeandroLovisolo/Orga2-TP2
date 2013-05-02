@@ -453,7 +453,8 @@ waves_asm:
 		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [rdi+3, ... ,rdi]
 		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [rdi+7, ... ,rdi+4]
 
-		; convierto a punto flotantes
+		; convierto a punto flotantes.
+		; las imagenes estan en unsigned, pero como le agrego 0 tambien sirve como signed
 
 		CVTDQ2PS xmm14,xmm14 		; xmm14 <- [(rdi+3).0, ... ,(rdi).0]
 		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+7).0, ... ,(rdi+4).0]
