@@ -84,19 +84,22 @@ waves_asm:
 	MOV r14,8
 	XOR rdx,rdx
 	XOR rax,rax
-	MOV eax,r9d 		; en r9 hay un entero en la parte baja en el resto es basura
+	MOV rax,r9  		; rax <- n
 	IDIV r14 			; divido n/8
 	MOV r14,rax 		; r14 <- [n/8]
 	MOV r10,r14 		; r10 <- [n/8], ---- en esta variable voy a ir iterando ----
 
+	; cargo el paddin en r8
+	SUB r8,r9 			; r8 <- row_size - n
+
 	; me fijo si queda un tramo mas por recorrer luego de las iteraciones de 16 bytes
 	MOV rbx,No_Tiene_ultimo_tramo
+	MOV r15,0 					; por las dudas si no tiene ultimo tramo le pongo 0
 	CMP rdx,0
 	JE .ciclo
 
 	; ########## si no salto es porque queda un tramo aparte para recorrer ##########
-	MOV r15,8
-	SUB r15,rdx 				; r15d <- 8 - (n mod 8)
+	MOV r15,rdx 				; r15d <- resto de [n/8]
 	MOV rbx,Tiene_Ultimo_Tramo 	; seteo el flag rbx indicando que hay un ultimo tramo
 
 	; ############################ EMPIEZA EL CICLO #################################
@@ -113,7 +116,8 @@ waves_asm:
 	; r10 <- [n/8]
 	; r14 <- [n/8]
 	; rbx <- queda_ultimo_tramo o no
-	; r15 <- 8 - (n mod 8)
+	; r15 <- resto de [n/8]
+	; r8  <- row_size - n
 
 	; ############ REGISTROS DE LA IMAGEN ############################################
 
@@ -429,29 +433,20 @@ waves_asm:
 
 
 		; ################## RECUPERO Y DESEMPAQUETO LOS DATOS DE LAIMAGEN ##############
-		
-		; ##############################################################################################################
-		; ##################### PUEDO SOLO DISTINGUIR PARA DESCARGAR DATOS Y LUEGO SEGUIR EN UNA LINEA #################
-		; ##############################################################################################################
 
-		CMP r10,1
-		JE .UsarParteAlta
 
-		CMP r10,-1
-		JE .UsarParteAlta
-
-		; si no salto es porque hay 16 byte por delante o mas y voy usando la parte baja
-		MOVDQU xmm14,[rdi] 			; xmm10 <- [rdi+15, ... ,rdi+0]
+		; traigo los datos de la memoria
+		MOVQ xmm14,[rdi] 			; xmm10 <- [basura, ... ,basura,rdi+7, ... ,rdi+0]
 		
 		; desempaqueto de Byte a Word
 		PXOR xmm11,xmm11 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
-		PUNPCKLBW xmm14,xmm11 		; xmm14 <- [rdi+7, ... ,rdi]	
+		PUNPCKLBW xmm14,xmm11 		; xmm14 <- [00rdi+7, ... ,00rdi]	
 
 
 		; desempaqueto de Word a Doubleword
 		MOVDQU xmm15,xmm14
-		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [rdi+3, ... ,rdi]
-		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [rdi+7, ... ,rdi+4]
+		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [0000rdi+3, ... ,0000rdi]
+		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [0000rdi+7, ... ,0000rdi+4]
 
 		; convierto a punto flotantes.
 		; las imagenes estan en unsigned, pero como le agrego 0 tambien sirve como signed
@@ -470,46 +465,7 @@ waves_asm:
 		; ########################## EMPAQUETO SATURANDO ##################################
 		
 		; empaqueto de doubleWord a word
-		PACKSSDW xmm14,xmm15
-
-		; empaqueto de word a bytes
-		PACKUSWB xmm14,xmm14
-
-		; guardo los datos en el destino
-		MOVQ [rsi],xmm14
-		JMP .configurarIteracion
-
-	.UsarParteAlta:
-		; llegue a esta parte es porque estoy en el ultimo ciclo o en el ultimo tramo y en amvos utilizo la parte alta
-		MOVDQU xmm14,[rdi] 			; xmm10 <- [rdi+15, ... ,rdi+0]
-		
-		; desempaqueto de Byte a Word
-		PXOR xmm11,xmm11 			; lo seteo en 0 para utilizarlo en el desempaquetamiento
-		PUNPCKHBW xmm14,xmm11 		; xmm14 <- [rdi+15, ... ,rdi+8]	
-
-
-		; desempaqueto de Word a Doubleword
-		MOVDQU xmm15,xmm14
-		PUNPCKLWD xmm14,xmm11 		; xmm14 <- [rdi+11, ... ,rdi+8]
-		PUNPCKHWD xmm15,xmm11 		; xmm15 <- [rdi+15, ... ,rdi+12]
-
-		; convierto a punto flotantes
-
-		CVTDQ2PS xmm14,xmm14 		; xmm14 <- [(rdi+11).0, ... ,(rdi+8).0]
-		CVTDQ2PS xmm15,xmm15 		; xmm15 <- [(rdi+15).0, ... ,(rdi+12).0]
-
-		ADDPS xmm14,xmm12			; xmm14 <- Prof(i,j+3)*g_scale + (rdi+11).0, ... ,Prof(i,j)*g_scale + (rdi+8).0
-		ADDPS xmm15,xmm13 			; xmm15 <- Prof(i,j+7)*g_scale + (rdi+15).0, ... ,Prof(i,j+4)*g_scale + (rdi+12).0
-
-		; ########################## CONVIERTO A ENTEROS ##################################
-
-		CVTTPS2DQ xmm14,xmm14 		; xmm14 <- [Prof(i,j+3)*g_scale + (rdi+11).0], ... ,[Prof(i,j)*g_scale + (rdi+8).0]
-		CVTTPS2DQ xmm15,xmm15 		; xmm15 <- [Prof(i,j+7)*g_scale + (rdi+15).0], ... ,[Prof(i,j+4)*g_scale + (rdi+12).0]
-
-		; ########################## EMPAQUETO SATURANDO ##################################
-		
-		; empaqueto de doubleWord a word
-		PACKSSDW xmm14,xmm15
+		PACKUSDW xmm14,xmm15
 
 		; empaqueto de word a bytes
 		PACKUSWB xmm14,xmm14
@@ -528,7 +484,9 @@ waves_asm:
 		; rbx <- queda_ultimo_tramo o no
 		; r10 <- [n/8] - ciclos iterados
 		; r14 <- [n/8]
-		; r15 <- 8 - (n mod 8)
+		; r15 <- resto [n/8]
+		; r8  <- row_size - n
+
 		; ###############################################################################
 
 
@@ -547,9 +505,6 @@ waves_asm:
 	.siguienteCiclo:
 		ADD r13,8  		; r13 <- j = j+8 paso a los siguientes
 		ADD rsi,8
-		CMP r10,1
-		JE .finCiclo
-
 		ADD rdi,8	
 		JMP .finCiclo
 
@@ -565,13 +520,20 @@ waves_asm:
 		JMP .finCiclo
 
 	.saltear_proxima_linea:
-		MOV r10,r14 		; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
-		ADD rdi,16
+		; pongo la memoria en la primera posición de la próxima linea
+		ADD rdi,8
 		ADD rsi,8	
-		LEA rdi,[rdi + r15] ; le cargo el padding
-		LEA rsi,[rsi + r15]
+		ADD rdi,r8 		; salteo el padding
+		ADD rsi,r8		; salteo el padding
+
+		; reseteo los datos de los contadores para una fila.		
+		MOV r10,r14 		; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
 		MOV r13,0 			; r13 <-j = 0
+
+		; aumento el numero de la fila donde estamos
 		INC r12 			; r12 <- i++
+
+		; decremento la cantidad de filas que me faltan procesar
 		DEC rcx 			; m - lineas procesadas
 
 
