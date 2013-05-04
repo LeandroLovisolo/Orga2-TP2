@@ -43,9 +43,40 @@ halftone_asm:
 	PUSH r14 			; Alineado
 	PUSH r15 			; Desalineado
 
+
+	; #################### TENGO QUE VER SI LAS DIMENSIONES SON IMPARES ##############
+
+	; me fijo si m es impar, en ese caso primero decremento en 1
+	MOV r12,0x1 			; armo la mascara 00000 ... 0001 para ver si es impar 
+	AND r12,rdx 			; si es impar r12 vale 1, si no r12 vale 0
+
+	CMP r12,0x0
+	JE .cantFilasEsPar
+
+	; si no salto es porque es impar y en ese caso primero decremento 1
+	DEC rdx
+
+.cantFilasEsPar:
+	
+	; me fijo si n es impar, en ese caso primero decremento en 1
+	MOV r12,0x1 			; armo la mascara 00000 ... 0001 para ver si es impar 
+	AND r12,rcx 			; si es impar r12 vale 1, si no r12 vale 0
+
+	CMP r12,0x0
+	JE .tamFilaEsPar
+
+	; si no salto es porque es impar y primero decremento 1
+	DEC rcx
+
+.tamFilaEsPar:
+
+	; ########### TERMINA DE CHECKEAR QUE LAS DIMESIONES SEAN PARES ###############
+
 	; guardo valores
 	MOV r13,rdx 			; r13d = m
+
 	SAR r13,1				; r13d = m/2 esto es porque voy de a dos lineas a la vez
+
 
 	; guardo el valor del padding
 	MOV r10,r8
@@ -58,24 +89,23 @@ halftone_asm:
 	; ////////////////////////////////////////////////////////////////////////////////
 
 	; obtengo la cantidad de veces que puedo avanzar en una fila
-	XOR edx,edx
+	XOR rdx,rdx
 	MOV r12,16
-	MOV eax,ecx
-	IDIV r12 				; eax = parte entera(n/16), edx = resto de la divicion
-	MOV r14,rax 			; r14d = parte entera(n/16)
-	MOV rbx,r14 			; rbx = parte entera de(n/16)
+	MOV rax,rcx
+	IDIV r12 				; eax <- [n/16], edx <- resto de [n/16]
+	MOV r14,rax 			; r14 <- [n/16]
+	MOV rbx,r14 			; rbx <- [n/16] ----- sobre este voy a iterar
 	
 
 
-	; me fijo si es resto fue 0 o noy lo seteo en un flag.
+	; me fijo si el resto fue 0 o no, y lo seteo en un flag.
 	MOV r12,No_Tiene_ultimo_tramo
 	CMP rdx,0
 	JE .setear_registros
 
 	; si no salto es porque hay un tramo mas a recorrer
-	; me guardo el valor de lo que hay que restarle a la ultima posicion valida para obtener el ultimo tramo
-	MOV r15,16			
-	SUB r15,rdx
+	; me guardo el valor de lo que hay que restarle a la ultima posicion valida para obtener el ultimo tramo		
+	MOV r15,rdx
 	MOV r12,Tiene_Ultimo_Tramo 	; seteo el falg indicando que si hay un ultimo tramo
 
 .setear_registros:
@@ -91,6 +121,33 @@ halftone_asm:
 	MOVDQU xmm11,[mascara_impares]
 	MOVDQU xmm10,[mascara_pares]
 	MOVDQU xmm9,[mascara_unos]
+
+	; ############################# ESTADO DE LOS REGISTROS ##########################
+	
+	; ########## REGISTROS PARA EL LOOP ##############################################
+
+	; r10 <- padding de src
+	; r11 <- padding de dst
+	; r13 <- cant de filas a recorrer
+	; r12 <- tiene ultimo tramo o no
+	; r15 <- resto de [n/16]
+	; r14 <- [n/16]
+	; rbx <- [n/16]
+
+	; ######## REGISTROS GENERALES ##################################################
+
+	;XMM9 <- mascara de unos 
+	;XMM10 <- mascara de pares
+	;XMM11 <- mascara de impares
+	;XMM12 <- 205,205,205,205,205,205,205,205
+	;XMM13 <- 410,410,410,410,410,410,410,410
+	;XMM14 <- 615,615,615,615,615,615,615,615
+	;XMM15 <- 820,820,820,820,820,820,820,820 
+	;r8 <- rsc_row_size
+	;r9 <- dst_row_size
+	
+	; ###############################################################################
+
 
 	; ////////////////////////////////////////////////////////////////////////////////
 	; /////////////////// COMIENZA EL CICLO PARA RECORRER LA IMAGEN //////////////////
@@ -199,6 +256,21 @@ halftone_asm:
 		; /////////////// CODIGO PARA RECORRER LA MATRIZ DE LA IMAGEN ////////////////////
 		; ////////////////////////////////////////////////////////////////////////////////
 
+	
+		; ########## REGISTROS PARA EL LOOP ##############################################
+
+		; r10 <- padding de src
+		; r11 <- padding de dst
+		; r13 <- cant de filas a recorrer
+		; r12 <- tiene ultimo tramo o no
+		; r15 <- resto de [n/16]
+		; r14 <- [n/16]
+		; rbx <- cantidad de iteraciones que faltan en una fila 
+
+		
+		
+		; ###############################################################################
+
 		DEC rbx 					; decremento la cantidad de iteraciones que me faltan para terminar la fila actual
 
 		; me fijo si ya llegue al final de la fila
@@ -223,19 +295,19 @@ halftone_asm:
 
 		; si no salto es porque puede haber un ultimo tramo a recorrer
 		; en tal caso me fijo si ya lo hice o no
-		SUB rdi,r15
-		SUB rsi,r15
+		ADD rdi,r15
+		ADD rsi,r15
 		JMP .finCiclo
 
 	.saltear_proxima_linea:
 		MOV rbx,r14 				; le vuelvo a cargar la cantidad de iteraciones a realizar en una lina
 		ADD rdi,16
 		ADD rsi,16	
-		LEA rdi,[rdi + r10] 	; le cargo el padding
-		LEA rsi,[rsi + r11]
+		ADD rdi,r10 			 	; le cargo el padding
+		ADD rsi,r11 			
 		ADD rdi,r8 					; me saleteo la lina ya que debo ir de dos en dos
 		ADD rsi,r9
-		DEC r13 					; decremento el contador de lineas restantes
+		DEC r13					; decremento el contador de lineas restantes
 
 
 .finCiclo:

@@ -13,6 +13,11 @@ void halftone_c (
 
 	int t;
 
+	// si la imagen de origen tiene una dimension impar la ignoro restandole uno a la dimesiones
+
+	if(n%2 == 1) --n;
+	if(m%2 == 1) --m;
+
 	for(int i = 0; i < m; i+=2){
 		for (int j = 0; j < n; j+=2)
 		{
