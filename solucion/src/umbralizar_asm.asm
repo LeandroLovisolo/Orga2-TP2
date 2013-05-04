@@ -25,8 +25,6 @@ global umbralizar_asm
 
 section .rodata
 pckSuffleMask: DQ 0x0100010001000100, 0x0100010001000100
-grValue: DQ 0xffffffffffffffff, 0xffffffffffffffff
-
 section .text
 
 umbralizar_asm:
@@ -44,8 +42,6 @@ umbralizar_asm:
     movq xmm5, r12
     movdqu xmm6, [pckSuffleMask]
     pshufb xmm5, xmm6 ;Me queda en xmm5 el máximo repetido en words
-    ;Armo registro para poner bytes en FF si es > max
-    movdqu xmm9, [grValue]
     ;###################################################################################################################
     ;Preparación del mínimo para hacer comparaciones más tarde
     ;###################################################################################################################
@@ -76,7 +72,6 @@ umbralizar_asm:
     ;###################################################################################################################
     ;xmm12 ->  Contiene en todos los bytes el mínimo
     ;xmm11 ->  Contiene el mínimo repetido en words
-    ;xmm9  ->  Contiene en todos los bytes 255
     ;xmm5  ->  Contiene el máximo repetido en words
     ;xmm6 ->   Contiene la representación flotante de Q 4 veces (4 floats Q)
     ;###################################################################################################################
@@ -102,9 +97,7 @@ umbralizar_asm:
         pcmpgtw xmm3, xmm5 ;Veo si mis pixeles convertidos a word son mayores que el máximo
         pcmpgtw xmm4, xmm5 ;Esto me deja una máscara de words
         packsswb xmm3, xmm4 ;Hago el empaquetamiento otra vez y me queda una máscara para hacer la suma al acum 
-        movdqu xmm10, xmm9 ;Hago una copia de la double quadword de 255's, 255 es el valor que le corresponde a los números > max
-        pand xmm10, xmm3 ;Aplico la máscara de máximos a xmm10 para que me quede cuales pixeles van a ser 255 y poder sumar
-        paddusb xmm8, xmm10 ;Pongo en el acumulador los bits que le corresponden tener 255
+        paddusb xmm8, xmm3 ;Pongo en el acumulador los bits que le corresponden tener 255
         ;###################################################################################################################
         ;Creación de máscara para los pixeles que están entre min <= p <= max
         ;Para esto busco los mayores al min, una vez obtenida la máscara, hago xor con los mayores al max y or con los iguales al min
@@ -206,15 +199,18 @@ umbralizar_asm:
         add rdi, 16d ;Adelanto otros 16 bytes la imagen src
         add rsi, 16d ;Adelanto otros 16 bytes la imagen dst
         sub rcx, 16d ;RCX tiene la cantidad de píxeles que existe, le resto los 16 que ya ví
-        cmp rcx, 16d
-        jg .ciclo
+        cmp rcx, 0d
         je .fin
+        cmp rcx, 16d
+        jge .ciclo
         jl .muevoParaAtras
     .muevoParaAtras:
     xor rax, rax
     mov rax, 16d
     sub rax, rcx
     sub rdi, rax
+    sub rsi, rax
+    mov rcx, 16d
     jmp .ciclo
     .fin:
     pop r13
