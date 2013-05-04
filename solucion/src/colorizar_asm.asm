@@ -119,7 +119,7 @@ obtener_vecinos:
     movdqu xmm3, [rdi + rax]    ; xmm3 = [src + (src_row_size * (y + 1) + x - 3 - offset)]    
 
     ; Si hubo ajuste de fin de última fila, reacomodo los bytes de la siguiente forma:
-    ; RGBR GBRG B___ ____ => 0000 000R GBRG BRGB
+    ; RGBR GBRG B___ ____ => | 000R GBRG BRGB
 
     cmp ecx, 0
     je reordenar_bytes          ; Salto sólo si no hubo ajuste de fin de última fila
@@ -275,7 +275,7 @@ tupla_phi:
     add eax, r10d               ; eax = dst_row_size * y + x
     shl rax, 32                 ; Limpio parte alta de rax
     shr rax, 32    
-    add [rsi + rax], ecx        ; [dst + (dst_row_size * y + x)] += ecx
+    mov [rsi + rax], ecx        ; [dst + (dst_row_size * y + x)] += ecx
 
     ; Iteración ciclo x
 
