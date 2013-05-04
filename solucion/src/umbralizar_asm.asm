@@ -34,27 +34,24 @@ umbralizar_asm:
     push r13
     mov r12, [rbp + 16] ;Guardo el máximo
     mov r13, [rbp + 24] ;Guardo Q
-    and r13, 00000000000000FFh
-    and r12, 00000000000000FFh ;Pongo todo en 0's excepto el máximo que es un byte
     ;###################################################################################################################
     ;Preparación del máximo para realizar comparaciones más tarde
     ;###################################################################################################################
-    movq xmm5, r12
+    movd xmm5, r12d
     movdqu xmm6, [pckSuffleMask]
     pshufb xmm5, xmm6 ;Me queda en xmm5 el máximo repetido en words
     ;###################################################################################################################
     ;Preparación del mínimo para hacer comparaciones más tarde
     ;###################################################################################################################
     pxor xmm11, xmm11 ;Creo una máscara para packed shuffle byte para poner en todos los bytes el minimo
-    movq xmm12, r9 ;Pongo el minimo en xmm12
+    movd xmm12, r9d ;Pongo el minimo en xmm12
     pshufb xmm12, xmm11 ;Me pone el mínimo en todos los bytes
-    and r9, 000000000000000FFh
-    movq xmm11, r9
+    movd xmm11, r9d
     pshufb xmm11, xmm6 ;Me queda el mínimo repetido en words para realizar luego la comparación
     ;##################################################################################################################
     ;Setteo el valor de q en words y lo paso a punto flotante para luego utilizarlo
     ;##################################################################################################################
-    movq xmm6, r13 ;Muevo Q a xmm3
+    movd xmm6, r13d ;Muevo Q a xmm3
     shufps xmm6, xmm6, 0d ;Lleno de Q's double words a xmm3
     cvtdq2ps xmm6, xmm6 ;Convierto q a float
     ;###################################################################################################################
