@@ -102,9 +102,7 @@ umbralizar_asm:
         pcmpgtw xmm3, xmm5 ;Veo si mis pixeles convertidos a word son mayores que el máximo
         pcmpgtw xmm4, xmm5 ;Esto me deja una máscara de words
         packsswb xmm3, xmm4 ;Hago el empaquetamiento otra vez y me queda una máscara para hacer la suma al acum 
-        movdqu xmm10, xmm9 ;Hago una copia de la double quadword de 255's, 255 es el valor que le corresponde a los números > max
-        pand xmm10, xmm3 ;Aplico la máscara de máximos a xmm10 para que me quede cuales pixeles van a ser 255 y poder sumar
-        paddusb xmm8, xmm10 ;Pongo en el acumulador los bits que le corresponden tener 255
+        paddusb xmm8, xmm3 ;Pongo en el acumulador los bits que le corresponden tener 255
         ;###################################################################################################################
         ;Creación de máscara para los pixeles que están entre min <= p <= max
         ;Para esto busco los mayores al min, una vez obtenida la máscara, hago xor con los mayores al max y or con los iguales al min
