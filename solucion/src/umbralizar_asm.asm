@@ -206,15 +206,18 @@ umbralizar_asm:
         add rdi, 16d ;Adelanto otros 16 bytes la imagen src
         add rsi, 16d ;Adelanto otros 16 bytes la imagen dst
         sub rcx, 16d ;RCX tiene la cantidad de píxeles que existe, le resto los 16 que ya ví
+        cmp rcx, 0d
+        je .fin
         cmp rcx, 16d
         jg .ciclo
-        je .fin
         jl .muevoParaAtras
     .muevoParaAtras:
     xor rax, rax
     mov rax, 16d
     sub rax, rcx
     sub rdi, rax
+    sub rsi, rax
+    mov rcx, 16d
     jmp .ciclo
     .fin:
     pop r13
