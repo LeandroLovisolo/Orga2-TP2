@@ -1,5 +1,4 @@
-El enfoque de la aplicación en assembler era poder procesar 16 bytes contiguos con instrucciones simultaneas para poder aprovechar al máximo el paralelismo que ofrece SIMD. Esto no fue posible debido a que el set de instrucciones no tiene comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255) por lo que fué necesario realizar un desempaquetamiento de los datos (convirtiendolos en words) y se consiguió operar sobre los bytes de a 8 por instrucción SIMD, aunque por cada ciclo se lograron procesar los 16.
-
+El enfoque de la aplicación en assembler era poder procesar la mayor cantidad de pixeles contiguos (16 bytes) con instrucciones SIMD para poder aprovechar al máximo el paralelismo que estas ofrecen. Esto no fue posible debido a que el set de instrucciones no tiene comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255) por lo que fue necesario realizar un desempaquetamiento de los datos (convirtiendolos en words) para luego hacer las comparaciones correspondientes.
 Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en registros xmm al inicio del programa:
 \begin{itemize}
   \item xmm12 $\Rightarrow$ Contiene 16 bytes packed con el mínimo
@@ -8,12 +7,14 @@ Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en regi
   \item xmm6 $\Rightarrow$ Contiene la representación flotante de Q packed
 \end{itemize}
 
+También se calcula y se guarda en el registro rcx, la cantidad de pixeles que tiene la imagen, información que se utilizará para conocer cuántos pixeles faltan por procesar en cada iteración.
+
 \subsubsection{Descripción del ciclo:}
 Al comienzo del ciclo se ponen en 0 los bytes del registro xmm8 que servirá como acumulador de los nuevos valores que tendrán los pixeles.
 
 Se guardan 16 bytes contiguos desde la imagen fuente en el registro xmm1, se busca cuáles son iguales al mínimo (aprovechando la instrucción pcmpeqb que realiza la comparación en los 16 bytes simultaneamente) y se guarda la máscara obtenida que se usará mas tarde. Luego se los desempaqueta en parte alta y baja extendiendolos a words para realizar comparaciones.
 
-\begin{figure}[ht!]
+\begin{figure}[H]
 \centering
 \includegraphics[width=90mm]{unpackxmm1.png}
 \caption{Desempaquetado de los bytes a words para realizar comparaciones}
@@ -23,7 +24,7 @@ Se guardan 16 bytes contiguos desde la imagen fuente en el registro xmm1, se bus
 Se buscan los números que superen al máximo comparando la parte alta y baja con el registro xmm5 preparado al inicio del programa el cuál contiene el máximo en words empaquetadas. Utilizando pcmpgtw tanto en la parte baja como la alta, obtenemos una máscara que contiene en 0xFFFF las words mayores al máximo y en 0x0000 las demás. Empaquetamos la máscara relacionada a la parte baja y a la alta dejando en 255 sólo los bytes que sean mayores al máximo para luego sumarlos en el acumulador.
 
 
-\begin{figure}[ht!]
+\begin{figure}[H]
 \centering
 \includegraphics[width=150mm, height=40mm]{cpmmax.png}
 \caption{Ejemplo de creación de máscara y empaquetado de la misma. El registro xmm3 es la copia de xmm1 que guardará la parte baja de la máscara, xmm4 realiza lo mismo con la parte alta.}
@@ -37,6 +38,13 @@ Para conseguir la máscara para el caso en el que el valor del pixel estuviera e
 Luego de haber creado la máscara para el caso, se realiza el cálculo de los nuevos valores para los pixeles que cumplan esa propiedad, los cuales deben realizarse utilizandose punto flotante. Fue necesario desempaquetar aún más los pixeles para poder obtener los valores de estos en double words y poder convertirlos a single precision floats, precisión suficiente para los cálculos que también brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
 
 Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca para realizar la función "floor" convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetamiento inicial (xmm2).
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=150mm, height=85mm]{calcq.png}
+\caption{Ejemplo del cálculo de la parte baja de los nuevos valores para los pixeles que entran en el caso ($min \geq p \leq max$), el mismo procedimiento se realiza con la parte alta y se empaquetan ambos resultados}
+\label{overflow}
+\end{figure}
 
 Al finalizar, se empaquetan los dos registros resultantes para luego poder aplicarle la máscara anteriormente creada para el caso y sumar el valor obtenido al acumulador, dejando el valor correspondiente en los pixeles que cumplían con el caso.
 
