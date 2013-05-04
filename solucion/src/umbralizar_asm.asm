@@ -25,8 +25,6 @@ global umbralizar_asm
 
 section .rodata
 pckSuffleMask: DQ 0x0100010001000100, 0x0100010001000100
-grValue: DQ 0xffffffffffffffff, 0xffffffffffffffff
-
 section .text
 
 umbralizar_asm:
@@ -44,8 +42,6 @@ umbralizar_asm:
     movq xmm5, r12
     movdqu xmm6, [pckSuffleMask]
     pshufb xmm5, xmm6 ;Me queda en xmm5 el máximo repetido en words
-    ;Armo registro para poner bytes en FF si es > max
-    movdqu xmm9, [grValue]
     ;###################################################################################################################
     ;Preparación del mínimo para hacer comparaciones más tarde
     ;###################################################################################################################
@@ -76,7 +72,6 @@ umbralizar_asm:
     ;###################################################################################################################
     ;xmm12 ->  Contiene en todos los bytes el mínimo
     ;xmm11 ->  Contiene el mínimo repetido en words
-    ;xmm9  ->  Contiene en todos los bytes 255
     ;xmm5  ->  Contiene el máximo repetido en words
     ;xmm6 ->   Contiene la representación flotante de Q 4 veces (4 floats Q)
     ;###################################################################################################################
@@ -207,7 +202,7 @@ umbralizar_asm:
         cmp rcx, 0d
         je .fin
         cmp rcx, 16d
-        jg .ciclo
+        jge .ciclo
         jl .muevoParaAtras
     .muevoParaAtras:
     xor rax, rax
