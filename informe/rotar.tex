@@ -24,3 +24,35 @@ Al terminar este ciclo, se agregan los valores de estos 4 bytes al el acumulador
 En el final de cada iteración del ciclo princiapl, se checkea la posición de la imagen en la que se está (por si ya se ha terminado de recorrerla o se es necesario correr para atrás para agarrar 16 pixeles exactos) y si se ha llenado el acumulador. Si el acumulador se llena (habiendo pasado 4 ciclos) se mueven los 16 bytes a la imagen destino, economizando el movimiento de datos.
 
 \subsubsection{Comparación con el lenguaje C}
+Decompilando la versión de rotar en c utilizando objdump -d -M intel -S rotar\_c.o obtuvimos el código ensamblador armado por gcc.
+
+Este caso, cómo el algoritmo no es muy paralelizable, ambos códigos comparten acciones cómo la comparacion individual y la lectura en memoria de cada pixel. Sin embargo, se diferencian a hora de calcular las posiciones dónde están los valores de los pixeles a poner en la imagen destino, que se realizan utilizando instrucciones SIMD de a 2 doubles contra las operaciones sin simultaneidad que realiza el lenguaje en C. También, la escritura a memoria se hace de a 16 bytes por el lado del programa en ensamblador contra la versión en C, ahorrando ciclos.
+
+Un análisis sobre cómo opera el lenguaje C compilado con gcc nos muestra cómo las operaciones de punto flotante se realizan algunas en doubles y otras en floats y se las convierte luego a float (ya que se almacenaban en floats en la implementación en c), estas pueden verse en la figura 5.
+
+\begin{lstlisting}
+u = cx + sqrt(2)/2.0 * (x - cx) - sqrt(2)/2.0 * (y - cy); //con u float
+movss  xmm1,DWORD PTR [rbp-0x40] ;Mueve el float cx a xmm1
+cvtps2pd xmm1,xmm1 ;Convierte de single a double
+cvtsi2ss xmm0,DWORD PTR [rbp-0x44] ;Convierto entero a float
+subss  xmm0,DWORD PTR [rbp-0x40] ;Resto single float
+unpcklps xmm0,xmm0 ;Desempaqueto y interlazo floats
+cvtps2pd xmm0,xmm0 ;Convierte de single float a doubles
+movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
+mulsd  xmm0,xmm2 ;Muevo double
+addsd  xmm0,xmm1 ;Sumo double
+cvtsi2ss xmm1,DWORD PTR [rbp-0x48] ;Convierto entero a float
+subss  xmm1,DWORD PTR [rbp-0x3c] ;Resto single float
+unpcklps xmm1,xmm1 ;Desempaqueto y interlazo floats
+cvtps2pd xmm1,xmm1 ;Convierte de single a double
+movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
+mulsd  xmm1,xmm2 ;Multiplicación de doubles
+subsd  xmm0,xmm1 ;Resta de doubles
+unpcklpd xmm0,xmm0 ;Desempaqueto y interlazo floats
+cvtpd2ps xmm0,xmm0 ;Convierto de double a single para guardarlo
+movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
+\end{lstlisting}
+
+Figura 5: Código ensamblador generado por gcc en el cálculo de u
+
+Es también notable como el lenguaje ensamblador nos permite acomodar las operaciones para realizar cálculos de la manera más optima posible, en especial utilizando SIMD para ahorrar ciclos.
