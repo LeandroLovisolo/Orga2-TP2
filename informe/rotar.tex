@@ -46,13 +46,13 @@ subss  xmm1,DWORD PTR [rbp-0x3c] ;Resto single float
 unpcklps xmm1,xmm1 ;Desempaqueto y interlazo floats
 cvtps2pd xmm1,xmm1 ;Convierte de single a double
 movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
-mulsd  xmm1,xmm2 ;Multiplicación de doubles
+mulsd  xmm1,xmm2 ;Multiplicacion de doubles
 subsd  xmm0,xmm1 ;Resta de doubles
 unpcklpd xmm0,xmm0 ;Desempaqueto y interlazo floats
 cvtpd2ps xmm0,xmm0 ;Convierto de double a single para guardarlo
 movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
 \end{lstlisting}
 
-Figura 5: Código ensamblador generado por gcc en el cálculo de u
+Figura 5: Código ensamblador generado por gcc en el cálculo de u \\
 
 Es también notable como el lenguaje ensamblador nos permite acomodar las operaciones para realizar cálculos de la manera más optima posible, en especial utilizando SIMD para ahorrar ciclos.
