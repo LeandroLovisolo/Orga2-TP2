@@ -28,7 +28,7 @@ recortar_asm:
     push rbx
     push r12
 
-    ; Libero registro rdx
+    ; Guardo parámetro m
 
     mov r12d, edx               ; r12d = m
 
