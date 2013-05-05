@@ -1,4 +1,4 @@
-El enfoque de la aplicación en assembler era poder procesar la mayor cantidad de pixeles contiguos (16 bytes) con instrucciones SIMD para poder aprovechar al máximo el paralelismo que estas ofrecen. Esto no fue posible debido a que el set de instrucciones no tiene comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255) por lo que fue necesario realizar un desempaquetamiento de los datos (convirtiendolos en words) para luego hacer las comparaciones correspondientes.
+El enfoque de la aplicación en ensamblador era poder procesar la mayor cantidad de pixeles contiguos (16 bytes) con instrucciones SIMD para poder aprovechar al máximo el paralelismo que estas ofrecen. Esto no fue posible debido a que el set de instrucciones no tiene comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255) por lo que fue necesario realizar un desempaquetamiento de los datos (convirtiendolos en words) para luego hacer las comparaciones correspondientes.
 Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en registros xmm al inicio del programa:
 \begin{itemize}
   \item xmm12 $\Rightarrow$ Contiene 16 bytes packed con el mínimo
@@ -33,7 +33,7 @@ Se buscan los números que superen al máximo comparando la parte alta y baja co
 
 Al utilizar un acumulador incialmente en 0 se pudo ahorrar el paso de comparar los pixeles menores al mínimo ya que los pixeles que cumplieran esta propiedad tendrían 0 como valor.
 
-Para conseguir la máscara para el caso en el que el valor del pixel estuviera entre el máximo y el mínimo ($min \geq p \leq max$) se aprovechó las máscaras previamente obtenidas (mayores al máximo e iguales al mínimo), por lo que sólo fue necesario buscar los números mayores al mínimo (haciendo un procedimiento similar al de la búsqueda del máximo), agregarle los números iguales al mínimo (mediante un por) con la máscara creada al principio del ciclo y luego sacarle los mayores al máximo (mediante un pxor).
+Para conseguir la máscara para el caso en el que el valor del pixel estuviera entre el máximo y el mínimo ($min \geq pixel \leq max$) se aprovechó las máscaras previamente obtenidas (mayores al máximo e iguales al mínimo), por lo que sólo fue necesario buscar los números mayores al mínimo (haciendo un procedimiento similar al de la búsqueda del máximo), agregarle los números iguales al mínimo (mediante un por) con la máscara creada al principio del ciclo y luego sacarle los mayores al máximo (mediante un pxor).
 
 Luego de haber creado la máscara para el caso, se realiza el cálculo de los nuevos valores para los pixeles que cumplan esa propiedad, los cuales deben realizarse utilizandose punto flotante. Fue necesario desempaquetar aún más los pixeles para poder obtener los valores de estos en double words y poder convertirlos a single precision floats, precisión suficiente para los cálculos que también brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
 
@@ -42,7 +42,7 @@ Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1
 \begin{figure}[H]
 \centering
 \includegraphics[width=150mm, height=85mm]{calcq.png}
-\caption{Ejemplo del cálculo de la parte baja de los nuevos valores para los pixeles que entran en el caso ($min \geq p \leq max$), el mismo procedimiento se realiza con la parte alta y se empaquetan ambos resultados}
+\caption{Ejemplo del cálculo de la parte baja de los nuevos valores para los pixeles que entran en el caso ($min \geq pixel \leq max$), el mismo procedimiento se realiza con la parte alta y se empaquetan ambos resultados}
 \label{overflow}
 \end{figure}
 
@@ -52,11 +52,47 @@ Por último, se copian los nuevos valores de los 16 bytes en la imagen destino, 
 
 
 
-\subsubsection{Discusión y comparación con el código C:}
+\subsubsection{Comparación con el lenguaje C:}
 Enfocandonos en la versión decompilada de umbralizar\_c.c utilizando objdump -d -M intel -S umbralizar\_c.o se pueden observar bien en detalle las instrucciones que utiliza el compilador para ensamblar la versión en c de umbralizar.
 
-Se puede observar que el compilador, al tratarse del lenguaje C y su convención utiliza el stack para guardar variables locales, algo que seguramente será cubierto por la memoria caché pero que es comparable contra utilizar casi únicamente registros, que otorgan mejor performance a la hora de utilizar datos, como se realiza en la implementación en assembler.
+Se puede observar (Figura 4) que el compilador, al tratarse del lenguaje C y su convención utiliza el stack para guardar variables locales, algo que seguramente será cubierto por la memoria caché pero que es comparable contra utilizar casi únicamente registros, que otorgan mejor performance a la hora de utilizar datos, como se realiza en la implementación en ensamblador.
+\begin{lstlisting}
+if(src_matrix[y][x] < min) {
 
-Enfocandonos un poco en los condicionales, se puede ver como la versión en c desensamblada produce el código respectivo para calcular la posición del byte específico a comparar en la matríz fuente cada vez que se quiere realizar la comparación. La eficiencia de la implementación en c es muy evidente, no sólo no es necesario calcular la posición ya que se toman 16 bytes contiguos en vez de la utilización del casteo matricial, si no que las comparaciones se realizan en simultaneo. Si bien se comparan y se procesan 8 bytes por instrucción ya que es necesario extenderlas y compararlas de a 8, en cada ciclo del algoritmo se procesan 16 bytes. Cuándo se habla de procesar, se tiene en cuenta las operaciones tanto de comparación como de cálculo para los valores resultantes de los píxeles. También queda en evidencia que el algoritmo programado en assembler hace sólo dos llamadas a memoria, una para traer los 16 bytes contiguos y otra para modificar estos 16 bytes por sus correspondientes valores, algo muy superior a pedir y modificar bytes de a uno (VER EJEMPLO TIEMPO).
+;Instrucciones para settear la posicion del byte
+mov    eax,DWORD PTR [rbp-0x4c]
+movsxd rdx,eax
+movsxd rax,ebx
+imul   rdx,rax
+mov    rax,QWORD PTR [rbp-0x38]
+add    rdx,rax
+mov    eax,DWORD PTR [rbp-0x48]
+cdqe   
+movzx  eax,BYTE PTR [rdx+rax*1]
+;Termina el setteado de la posicion del byte
+cmp    al,BYTE PTR [rbp-0x70] ;Realiza la comparacion
+jae    c3 <umbralizar_c+0xc3>
 
-Por el lado del cálculo de $floor(ecuacion) * q$ dónde $ecuacion = src_matrix[y][x] / q$ , las operaciones de punto flotante se realizan con escalares, de a una en cada iteración por el lado de c, mientras que la implementación en assembler contempla operaciones simultaneas para estas.
+dst_matrix[y][x] = 0;
+
+;Instrucciones para settear la posicion del byte
+mov    eax,DWORD PTR [rbp-0x4c]
+movsxd rdx,eax
+movsxd rax,r12d
+imul   rdx,rax
+mov    rax,QWORD PTR [rbp-0x28]
+add    rdx,rax
+mov    eax,DWORD PTR [rbp-0x48]
+cdqe   
+;Termina el setteado de la posicion del byte
+mov    BYTE PTR [rdx+rax*1],0x0 ;Pone en un pixel de la imagen fuente 0x0
+jmp    171 <umbralizar_c+0x171>
+\end{lstlisting}
+
+Figura 4: Comparación y asignación de valor a un pixel utilizando el código  ensamblador generado para el código C por gcc. \\
+
+Enfocandonos en los condicionales, parte importante del código ya que estos les darán el valor nuevo a cada pixel, se puede ver como la versión en C desensamblada produce el código respectivo para calcular la posición del byte específico a comparar en la matríz fuente cada vez que se quiere llamar a un pixel (dst\_matrix[y][x]) (Figura 4). La diferencia en eficiencia en esta implementación en C contra la versión en ensamblador es muy evidente, no sólo no es necesario calcular la posición ya que se toman 16 bytes contiguos en vez de la utilización del casteo matricial, si no que las comparaciones o el cálculo de nuevos valores se realizan en simultaneo. Si bien el código en c podría cambiarse para hacer un recorrido lineal tal cómo lo hace ensamblador, la implementación en ensamblador nos otorga la capacidad de poder ser detallistas a la hora de la utilización de recursos y en este caso, usar instrucciones SIMD.
+
+Debe notarse que en la versión en assmembler, debido a la utilización de instrucciones SIMD se comparan y se procesan 8 bytes por instrucción (excepto en el caso de cálculo de punto flotante) y 16 bytes por cada ciclo del algoritmo. Al hablar de procesar, se tienen en cuenta las operaciones tanto de comparación como de cálculo para los valores resultantes de los píxeles. También queda en evidencia que el algoritmo programado en assembler hace sólo dos llamadas a memoria, una para traer los 16 bytes contiguos y otra para poner en la imagen de destino estos 16 bytes con sus nuevos valores, lo que es más eficiente que acceder a memoria de a byte como lo hace la implementación en c en cada iteración.
+
+Para el caso del cálculo de los nuevos valores para los pixeles ($min \geq pixel \leq max$) en dónde se utilizó punto flotante para calcular $\lfloor pixel/q \rfloor * q$, las operaciones de punto flotante se realizan en la versión en assembler con 4 pixeles por instrucción SIMD, incrementando también la eficiencia contra la versión en c en la cuál se hace el cálculo de un sólo píxel por instrucción.
