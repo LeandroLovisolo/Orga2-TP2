@@ -1,14 +1,16 @@
 #!/usr/bin/env python2
 # encoding: UTF-8
 
-# Este script
+# Uso: ./rendimiento <iteraciones> <parametros del filtro>
+# No es necesario especificar la implementación.
+# Ejemplo: ./rendimiento 100 colorizar lena.bmp 0.5
 
 import os
 import sys
 import commands
 
-st_c,   out_c   = commands.getstatusoutput("./tp2 -i c   -t 100 " + " ".join(sys.argv[1:]))
-st_asm, out_asm = commands.getstatusoutput("./tp2 -i asm -t 100 " + " ".join(sys.argv[1:]))
+st_c,   out_c   = commands.getstatusoutput("./tp2 -i c   -t " + " ".join(sys.argv[1:]))
+st_asm, out_asm = commands.getstatusoutput("./tp2 -i asm -t " + " ".join(sys.argv[1:]))
 
 print "Implementación C"
 print "----------------"
