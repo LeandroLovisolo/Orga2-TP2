@@ -1,6 +1,6 @@
 La idea de utilizar assembler fue principalmente aprobechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro xmm de $128$ bits entran $16$ bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte; podriamos pensar en trabajar con 16 pixeles de la imagen de manera simultanea. 
 
-Para entender mejor lo implementado en assembler primero presentaremos un pseudocodigo del algoritmo:
+Para entender mejor lo implementado en assembler primero presentaremos un pseudocodigo del algoritmo en C:
 
 //Pseudocodigo
 
