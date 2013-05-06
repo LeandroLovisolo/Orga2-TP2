@@ -1,0 +1,45 @@
+La utilización de assembler para la resolución de esta aplicación es fundamentalmente la utilización de las herramientas SIMD para mejorar la performanse del algoritmo. Teniendo en cuenta que el mismo trabaja haciendo iteraciónes sobre los pixeles de una imagen y procesando los mismos, si podemos procesar más de un pixel por iteración mejoramos de forma significativa la performance de la aplicación.\\
+
+Para poder entender mejor la manera en la que encaramos el programa, presentaremos un pseudocodigo del algoritmo implementado en c.\\
+
+//Poner pseudocodigo
+
+La idea principal fue implementar el algoritmo utilizando los registros $xmm$ para poder procesar 16 pixeles por iteración. ante esto el problema que nos surgio fue el siguiente:\\
+
+Como se puede ver en el pseudocodigo debemos llamar a la función sin_taylor($j/80.0$) y sin_taylor($i/80.0$), donde $(i,j)$ hacen referencia a la posición del pixel dentro de la matriz de la imagen. No podemos asumir nada en cuanto al valor de $j$ e $i$, incluso, estos pueden tan grandes como quieran, dependiendo el tamaño de la imagen, haciendo en ciertos casos que el algoritmo en assembler tenga fallas si se superara la precisión de un byte. 
+
+El algoritmo en C esta implementado con float, lo cual es una precición razonable para las dimensiones de imagenes con que se suele trabajar, es por esto que tuvimos que trabajar los datos con doubleword's, codificandolos como punto flotante de simple precición.
+
+Al trabajar con los datos en esta precición lo que tenemos es que para trabajar con 16 pixeles necesitamos 4 registros $xmm$ para cargar los indices de las columnas a los que estos pertenecen, más otro registro para cargar el valor empaquetado del indice de la fila a la que pertencen. Si miramos la funcion sin_taylor veremos que necesitamos entonces, 5 registros para el acumulador de la cuenta, 5 registros para mantener el valor original mientras que en otros 5 registros se van calculando cada termino del polinomio. Esto nos da una suma de $15$ registros $xmm$. Seguramente hay alguna manera de poder trabajar con 16 pixeles reutilizando registros, pero como no queremos hacer llamados a memoria nos parecio más eficiente procesar 8 pixeles por iteracón y obtener los registros $xmm$ sobrantes para precargar valores que seran utilizados en todas las iteraciones. \\
+
+una vez visto estos detalles pasemos a nombrar todos los registros que pre-seteamos antes de empezar el ciclo, y que luego serán utilizado dentro del mismo.
+
+estos valores son:
+\begin{itemize}
+	\item $xmm3$,[pi] 				$\Rightarrow$ $pi$,$pi$,$pi$,$pi$
+	\item $xmm4$,[dos]				$\Rightarrow$ $2.0$,$2.0$,$2.0$,$2.0$
+	\item $xmm5$,[jotas1] 			$\Rightarrow$ $3$,$2$,$1$,$0$
+	\item $xmm6$,[jotas2] 			$\Rightarrow$ $7$,$6$,$5$,$4$
+	\item $xmm7$,[seis] 			$\Rightarrow$ $6.0$,$6.0$,$6.0$,$6.0$
+	\item $xmm8$,[cientoVeinte] 	$\Rightarrow$ $120.0$,$120.0$,$120.0$,$120.0$
+	\item $xmm9$,[cincoMilCuarenta] $\Rightarrow$ $5040.0$,$5040.0$,$5040.0$,$5040.0$
+\end{itemize}
+
+\subsubsection{Descripción del ciclo:}
+\begin{itemize}
+	\item El primer paso realizado dentro de la iteración es guardar en $2$ registros $xmm$ los valores de los indices de los pixeles que se van a procesar, Sea $(i,j)$ el primero de los $8$ pixeles que seran procesados, los valores que se necesitan guardar son: $j$,$j+1$,$j+2$,$j+3$,$j+4$,$j+5$,$j+6$,$j+7$,$j+8$, y también el valor de $i$, el cual es el mismo para todos los pixeles ya que estamos trabajando sobre una misma fila.
+	
+	Para hacer esto, copiamos el valor de los registros $xmm5$ y $xmm6$ a los registros $xmm10$ y $xmm11$ utilizando la instrucción MOVDQU, luego en un registro $xmm$ se le pone en todos sus doubleword's el valor de $j$ utilzando la instrucciones MOVQ que mueve un doubleword en la parte baja del registro $xmm$ y extiende el resto del registro con $0$'s y se lo codifica en punto flotante con la instrucción. Luego se procede a sumarle a los registros $xmm10$ y $xmm11$ el registro donde empaquete el valor de $j$, para esto Utilizamos la instrucción ADDPS que realiza la suma empaquetada de doubleword codificados como puntos flotantes.
+	El algoritmo procesa mas adelante el valor de $i$, por lo que en esta instancia no hacemos nada con el.
+
+	\item El segundo paso a realizar es dividir los valores de los $j$'s por 8, pero como tenemos ya en un registro $xmm$ empaquetados 4 veces el número dos como doubleword's de punto flotante, lo que hacemos es dividir tres veces por este registro utilizando la intrucion DIVPS.
+
+	\item  Como ya tenemos los valores de los indices dividio ocho, el próximo paso es implementarle a estos valores la funcion sin_taylor. Para esto utilizamos los registros $xmm12$ y $xmm13$, donde obtenenemos el primer paso del algoritmo de esta funcion, que es dividir los valores empaquetados por $2*pi$ y obtener la parte entera. Como tenemos estos valores en los registros $xmm3$ y $xmm4$ procedemos a dividir nuevamente con las intrucciones DIVPS a $xmm12$ y $xmm3$ por los registros anteriores, y luego aplicamos las instrucciones CVTTPS2DQ y CVTTPS2DQ para obtener la parte entera.
+
+	\item El proximo paso de la funcion de taylor es restarle a los valores originales el resultado anterior previamente multiplicado por $2*pi$ por lo que primero multiplicamos utilizando la instrucción MULPS, los registros $xmm3$ y $xmm4$ a los registros $xmm12$,$xmm13$ donde estan los resultados anteriores, y luego a los registros $xmm10$ y $xmm11$ donde se encuentran los valores originales le sumamos los registros $xmm12$,$xmm13$ correspondientemente utilizando la función ADDPS.
+	En este paso hemos perdido los valores originales que teniamos empaquetados en $xmm10$ y $xmm11$ pero esto no nos importa ya que no los necesitamos más.
+
+	\item Luego vamos a restarle a lo recien obtenido el valor de $pi$ empaquetado en el registro $xmm3$, y a continuación una seguidilla de pasos repetidos de forma casi igual, por lo que consideramos mejor una explicación general para estos pasos, y no una lectura tediosa y repetitiva de la realización de los mismos.
+
+	Estos pasos son utilizados para obtener el valor siguiente, $Y = X - X^3/6 + X^5/120 - X^7/5040$ en cada doubleword de dos registros $xmm$ de forma empaquetada ($X$ hace referencia a los valores obtenidos mediante los pasos anteriores que estan empaquetados en los registros $xmm12$ y $xmm13$).
+	Para realizar esta cuenta, se guarda el valor de $xmm12$,$xmm13$ en dos registros $xmm$ para poder salvarlos, luego se copian de vuelta estos valores en otros dos registros $xmm$ que seran utilizados como acumulador. y lo siguiente a realizar es ir multiplicando y dividiendo estos registros para obtener cada uno de los terminos del polinomio y sumarselo o restarselo a los registros acumuladores para ir teniendo el valor del polinomio en los acumuladores. los dividendos utilizados estan ya pre-seteados en los registros $xmm7$,$xmm8$,$xmm9$ de forma empaquetada.
