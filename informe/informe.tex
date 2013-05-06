@@ -11,7 +11,9 @@
 \usepackage{graphicx}
 \usepackage{blindtext}
 \usepackage{listings}
-\usepackage{float}
+\usepackage{tikz}
+\usepackage{algorithmic}
+
 
 % Evita que el documento se estire verticalmente para ocupar
 % el espacio vacío en cada página.
@@ -32,6 +34,10 @@
    \renewcommand{\footrulewidth}{0pt}
 }
 %%%%%%%%%% Configuración de Fancyhdr - Fin %%%%%%%%%%
+
+%%%%%%%%%% Configuración de Algorithmic - Inicio %%%%%%%%%%
+\renewcommand{\algorithmiccomment}[1]{\hfill \{#1\}}
+%%%%%%%%%% Configuración de Algorithmic - Fin %%%%%%%%%%
 
 
 \begin{document}
@@ -122,10 +128,14 @@ Lautaro José Petaccio & 443/11 & lausuper@gmail.com\\
 
 \subsection{Recortar}
 
+\input{recortar}
+
 \subsection{Halftone}
 
 \subsection{Umbralizar}
+
 \input{umbralizar}
+
 \subsection{Colorizar}
 
 \subsection{Efecto plasma}

@@ -1,0 +1,61 @@
+La salida del filtro recortar consiste en, dada una longitud $n$, recortar las esquinas de la imagen
+original en forma de cuadrados de lado $n$ y unirlos para obtener la imagen destino, ubicando cada
+cuadrado en su posición opuesta respecto de la imagen original.
+
+\subsubsection{Descripción del ciclo}
+
+Se ilustra a continuación el ciclo de la implementación C:
+
+\begin{algorithmic}
+    \FOR{$y = 1$ to $n$}
+        \FOR{$x = 1$ to $n$}
+            \STATE $dst[alto - n + y][ancho - n + x]$ $\leftarrow$ $src[y][x]$ \COMMENT{copio esquina superior izquierda}
+            \STATE $dst[alto - n + y][x]$ $\leftarrow$ $src[y][ancho - n + x]$ \COMMENT{copio esquina superior derecha}
+            \STATE $dst[y][ancho - n + x]$ $\leftarrow$ $src[alto - n + y][x]$ \COMMENT{copio esquina inferior izquierda}
+            \STATE $dst[y][x]$ $\leftarrow$ $src[alto - n + y][ancho - n + x]$ \COMMENT{copio esquina inferior derecha}
+        \ENDFOR
+    \ENDFOR
+\end{algorithmic}
+
+La implementación assembler difiere de la anterior en cuanto a que se copia la imagen de a 16 bytes por vez,
+utilizando la instrucción \texttt{MOVDQU} para cargar 16 bytes de memoria contiguos en un registro XMM 
+y luego volcar el contenido del mismo en la posición de memoria correspondiente.
+
+Además, se realiza un ajuste sobre la variable $x$ para evitar leer y escribir posiciones de memoria fuera
+de la imagen y/o del cuadrado correspondiente: cuando la diferencia $|n - x|$ es menor a 16, se le resta
+esta diferencia a $x$, de manera que el siguiente ciclo opere exactamente con los 16 últimos bytes de la fila actual.
+
+El pseudocódigo a continuación describe el ciclo completo de la implementación assembler:
+
+\begin{algorithmic}
+    \FOR{$y = 1$ to $n$}
+        \FOR{$x = 1$ to $n$}
+            \IF{$|n - x| < 16$}
+                \STATE $x$ $\leftarrow$ $x - |n - x|$
+            \ENDIF
+            \STATE \texttt{MOVDQU XMM0}, $src[y][x]$ \COMMENT{copio esquina superior izquierda}
+            \STATE \texttt{MOVDQU} $dst[alto - n + y][ancho - n + x]$, \texttt{XMM0} \COMMENT{pego esquina superior izquierda}            
+            \STATE idem demás esquinas
+        \ENDFOR
+    \ENDFOR
+\end{algorithmic}
+
+\subsubsection{Rendimiento}
+
+Se observan las siguientes cantidades de ciclos y ticks de reloj al realizar 1000 iteraciones de ambas implementaciones:
+
+\begin{center}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        Medición & Implementación C & Implementación assembler & Relación \\
+        \hline
+        Ticks    & 385953030        & 23853906           & 6.43\% \\
+        Ciclos   & 378948.344       & 24397.717          & 6.43\% \\
+        \hline
+    \end{tabular}
+\end{center}
+
+Dado que la implementación assembler accede a la memoria de a 16 bytes por vez, la cantidad de accesos totales será
+aproximadamente $\frac{1}{16} = 0.0625$ veces la cantidad de accesos a memoria de la implementación C
+(no es exactamente esa cantidad pues los ajustes de fin de línea introducen un pequeño adicional de lecturas,
+dependiendo del ancho de la imagen.) Notemos que este número se condice con las mediciones de rendimiento realizadas.
