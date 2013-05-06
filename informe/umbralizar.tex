@@ -58,9 +58,10 @@ Para conseguir la máscara, se aprovechó las máscaras previamente obtenidas (m
 
 \subsubsection{Aplicación de la máscara para ($min \leq pixel \leq max$) y fin del ciclo}
 Al ser necesaria un división y un truncamiento para el caso, se utilizaron single precision floats.
+
 Fue necesario desempaquetar aún más los pixeles para poder obtener los valores de estos en double words y poder convertirlos a single precision floats, precisión suficiente para los cálculos que también brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
 
-Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca para realizar la función "floor" convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetamiento inicial (xmm2).
+Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca para realizar la función floor ($\lfloor \rfloor$) convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetamiento inicial (xmm2).
 
 \begin{figure}[H]
 \centering
@@ -75,6 +76,7 @@ Por último, se copian los nuevos valores de los 16 bytes en la imagen destino y
 
 \subsubsection{Comparación con la implementación C}
 El ciclo en C hace escencialmente lo mismo que la implementación en assembler, pero esta lo hace de manera simultanea utilizando SIMD. 
+
 Estos son los detalles de las operaciones realizadas en C para 16 bytes:
 \begin{itemize}
 \item 16 accesos a memoria para la lectura de cada byte y 16 para la escritura
@@ -88,14 +90,25 @@ Detalles de las operaciones realizadas por la implementación de assembler en 16
 \item Si bien siempre se realiza el cálculo en punto flotante relacionado a los valores de los pixeles del caso ($min \leq pixel \leq max$), estos se realizan con 4 instrucciones SIMD, pudiendo calcular el valor de 16 bytes por ciclo.
 \end{itemize}
 
+\subsubsection{Rendimiento}
+Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512 y utilando los parámetros: mín = 64, máx = 128 y Q = 16.
+\begin{center}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        Medición & Implementación C & Implementación assembler & Relación \\
+        \hline
+        Ticks    & 785867600      & 70172072               & $8.92\%$ \\
+        Ciclos   & 7858676        & 701721                & $8.92\%$ \\
+        \hline
+    \end{tabular}
+\end{center}
 
+Para hacer un análisis fino, utilizamos la herramienta objdump (objdump -d -M intel -S umbralizar\_c.o) para obtener el resultado de la compilación mediante gcc.
 
-Enfocandonos en la versión decompilada de umbralizar\_c.c utilizando objdump -d -M intel -S umbralizar\_c.o se pueden observar bien en detalle las instrucciones que utiliza el compilador para ensamblar la versión en c de umbralizar.
+Destacamos de este análisis el uso contínuo de variables locales (almacenadas en el stack) y el cálculo de la posición en memoria y el acceso a esta cáda vez que se quería realizar una comparación, algo evitable usando registros en ensamblador y que seguro impactaron en la performance.
 
-Se puede observar (Figura 4) que el compilador, al tratarse del lenguaje C y su convención utiliza el stack para guardar variables locales, algo que seguramente será cubierto por la memoria caché pero que es comparable contra utilizar casi únicamente registros, que otorgan mejor performance a la hora de utilizar datos, como se realiza en la implementación en ensamblador.
-\begin{lstlisting}
+\begin{verbatim}
 if(src_matrix[y][x] < min) {
-
 ;Instrucciones para settear la posicion del byte
 mov    eax,DWORD PTR [rbp-0x4c]
 movsxd rdx,eax
@@ -109,34 +122,8 @@ movzx  eax,BYTE PTR [rdx+rax*1]
 ;Termina el setteado de la posicion del byte
 cmp    al,BYTE PTR [rbp-0x70] ;Realiza la comparacion
 jae    c3 <umbralizar_c+0xc3>
+\end{verbatim}
 
-dst_matrix[y][x] = 0;
+Cabe destacar que el lenguaje ensamblador, además del uso de las instrucciones SIMD, que nos permiten realizar cálculos simultaneamente otorgandonos una gran ventaja contra el código en C, también nos permite explotar los recursos al máximo, pudiendo obviar cálculos de más guardandolos para su posterior uso y utilizar registros que implican menos cantidad de accesos a memoria.
 
-;Instrucciones para settear la posicion del byte
-mov    eax,DWORD PTR [rbp-0x4c]
-movsxd rdx,eax
-movsxd rax,r12d
-imul   rdx,rax
-mov    rax,QWORD PTR [rbp-0x28]
-add    rdx,rax
-mov    eax,DWORD PTR [rbp-0x48]
-cdqe   
-;Termina el setteado de la posicion del byte
-mov    BYTE PTR [rdx+rax*1],0x0 ;Pone en un pixel de la imagen fuente 0x0
-jmp    171 <umbralizar_c+0x171>
-\end{lstlisting}
-
-Figura 4: Comparación y asignación de valor a un pixel utilizando el código  ensamblador generado para el código C por gcc. \\
-
-\subsubsection{Rendimiento}
-Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512 y utilando los parámetros: mín = 64, máx = 128 y Q = 16.
-\begin{center}
-    \begin{tabular}{|l|l|l|l|}
-        \hline
-        Medición & Implementación C & Implementación assembler & Relación \\
-        \hline
-        Ticks    & 785867600      & 70172072               & $8.92\%$ \\
-        Ciclos   & 7858676        & 701721                & $8.92\%$ \\
-        \hline
-    \end{tabular}
-\end{center}
+Estas ventajas, sumadas a los pocos accesos de memoria al poder escribir y leer de a 16 bytes son la causa del bajo tiempo de ejecución del filtro en ASM.
