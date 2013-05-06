@@ -1,4 +1,5 @@
 El enfoque de la aplicación en ensamblador era poder procesar la mayor cantidad de pixeles contiguos (16 bytes) con instrucciones SIMD para poder aprovechar al máximo el paralelismo que estas ofrecen. Esto no fue posible debido a que el set de instrucciones no tiene comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255) por lo que fue necesario realizar un desempaquetamiento de los datos (convirtiendolos en words) para luego hacer las comparaciones correspondientes.
+
 Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en registros xmm al inicio del programa:
 \begin{itemize}
   \item xmm12 $\Rightarrow$ Contiene 16 bytes packed con el mínimo
@@ -9,7 +10,7 @@ Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en regi
 
 También se calcula y se guarda en el registro rcx, la cantidad de pixeles que tiene la imagen, información que se utilizará para conocer cuántos pixeles faltan por procesar en cada iteración.
 
-\subsubsection{Descripción del ciclo:}
+\subsubsection{Descripción del ciclo}
 Al comienzo del ciclo se ponen en 0 los bytes del registro xmm8 que servirá como acumulador de los nuevos valores que tendrán los pixeles.
 
 Se guardan 16 bytes contiguos desde la imagen fuente en el registro xmm1, se busca cuáles son iguales al mínimo (aprovechando la instrucción pcmpeqb que realiza la comparación en los 16 bytes simultaneamente) y se guarda la máscara obtenida que se usará mas tarde. Luego se los desempaqueta en parte alta y baja extendiendolos a words para realizar comparaciones.
@@ -50,9 +51,7 @@ Al finalizar, se empaquetan los dos registros resultantes para luego poder aplic
 
 Por último, se copian los nuevos valores de los 16 bytes en la imagen destino, se incrementan los punteros de la imágen fuente y destino para la próxima iteración. También se resta nuestro contador de pixeles, se lo compara para ver si llegó al final, caso en el que termina la ejecución, o si quedan más e igual, caso en el que vuelve a ciclar, o si restan menos de 16 bytes por agarrar, dónde se vuelve para atrás los punteros de las imágenes para que queden 16 pixeles exactamente y se pueda realizar la última iteración.
 
-
-
-\subsubsection{Comparación con el lenguaje C:}
+\subsubsection{Comparación con el lenguaje C}
 Enfocandonos en la versión decompilada de umbralizar\_c.c utilizando objdump -d -M intel -S umbralizar\_c.o se pueden observar bien en detalle las instrucciones que utiliza el compilador para ensamblar la versión en c de umbralizar.
 
 Se puede observar (Figura 4) que el compilador, al tratarse del lenguaje C y su convención utiliza el stack para guardar variables locales, algo que seguramente será cubierto por la memoria caché pero que es comparable contra utilizar casi únicamente registros, que otorgan mejor performance a la hora de utilizar datos, como se realiza en la implementación en ensamblador.
