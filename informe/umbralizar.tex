@@ -74,6 +74,22 @@ Al finalizar, se empaquetan los dos registros resultantes para luego poder aplic
 Por último, se copian los nuevos valores de los 16 bytes en la imagen destino y se incrementan los punteros de la imágen fuente y destino para la próxima iteración. También se resta nuestro contador de pixeles por procesar, se lo compara para ver si llegó al final, caso en el que termina la ejecución, o si quedan más e igual, caso en el que vuelve a ciclar, o si restan menos de 16 bytes por agarrar, dónde se vuelve para atrás los punteros de las imágenes para que queden 16 pixeles exactamente y se pueda realizar la última iteración.
 
 \subsubsection{Comparación con la implementación C}
+El ciclo en C hace escencialmente lo mismo que la implementación en assembler, pero esta lo hace de manera simultanea utilizando SIMD. 
+Estos son los detalles de las operaciones realizadas en C para 16 bytes:
+\begin{itemize}
+\item 16 accesos a memoria para la lectura de cada byte y 16 para la escritura
+\item Se realizan a lo sumo 32 comparaciones, (2 por cáda pixel), en dónde se necesita calcular la posición del pixel cáda vez que se lo quiere leer y se realiza un acceso a memoria para esto.
+\item En caso de haber caído dentro del caso ($min \leq pixel \leq max$), se realizan cáda una de las operaciones de cálculo de manera secuencial.
+\end{itemize}
+Detalles de las operaciones realizadas por la implementación de assembler en 16 bytes:
+\begin{itemize}
+\item Única lectura y escritura en memoria de 16 bytes
+\item Se realizan 2 comparaciones para el caso de los pixeles mayores al máximo y para calcular los píxeles mayores al mínimo por cada 16 bytes, ya que se comparan de a 8 bytes simultaneamente utilizando SIMD. También se realiza 1 comparación cada estos 16 bytes para obtener los iguales al mínimo.
+\item Si bien siempre se realiza el cálculo en punto flotante relacionado a los valores de los pixeles del caso ($min \leq pixel \leq max$), estos se realizan con 4 instrucciones SIMD, pudiendo calcular el valor de 16 bytes por ciclo.
+\end{itemize}
+
+
+
 Enfocandonos en la versión decompilada de umbralizar\_c.c utilizando objdump -d -M intel -S umbralizar\_c.o se pueden observar bien en detalle las instrucciones que utiliza el compilador para ensamblar la versión en c de umbralizar.
 
 Se puede observar (Figura 4) que el compilador, al tratarse del lenguaje C y su convención utiliza el stack para guardar variables locales, algo que seguramente será cubierto por la memoria caché pero que es comparable contra utilizar casi únicamente registros, que otorgan mejor performance a la hora de utilizar datos, como se realiza en la implementación en ensamblador.
@@ -112,8 +128,15 @@ jmp    171 <umbralizar_c+0x171>
 
 Figura 4: Comparación y asignación de valor a un pixel utilizando el código  ensamblador generado para el código C por gcc. \\
 
-Enfocandonos en los condicionales, parte importante del código ya que estos les darán el valor nuevo a cada pixel, se puede ver como la versión en C desensamblada produce el código respectivo para calcular la posición del byte específico a comparar en la matríz fuente cada vez que se quiere llamar a un pixel (dst\_matrix[y][x]) (Figura 4). La diferencia en eficiencia en esta implementación en C contra la versión en ensamblador es muy evidente, no sólo no es necesario calcular la posición ya que se toman 16 bytes contiguos en vez de la utilización del casteo matricial, si no que las comparaciones o el cálculo de nuevos valores se realizan en simultaneo. Si bien el código en c podría cambiarse para hacer un recorrido lineal tal cómo lo hace ensamblador, la implementación en ensamblador nos otorga la capacidad de poder ser detallistas a la hora de la utilización de recursos y en este caso, usar instrucciones SIMD.
-
-Debe notarse que en la versión en assmembler, debido a la utilización de instrucciones SIMD se comparan y se procesan 8 bytes por instrucción (excepto en el caso de cálculo de punto flotante) y 16 bytes por cada ciclo del algoritmo. Al hablar de procesar, se tienen en cuenta las operaciones tanto de comparación como de cálculo para los valores resultantes de los píxeles. También queda en evidencia que el algoritmo programado en assembler hace sólo dos llamadas a memoria, una para traer los 16 bytes contiguos y otra para poner en la imagen de destino estos 16 bytes con sus nuevos valores, lo que es más eficiente que acceder a memoria de a byte como lo hace la implementación en c en cada iteración.
-
-Para el caso del cálculo de los nuevos valores para los pixeles ($min \leq pixel \leq max$) en dónde se utilizó punto flotante para calcular $\lfloor pixel/q \rfloor * q$, las operaciones de punto flotante se realizan en la versión en assembler con 4 pixeles por instrucción SIMD, incrementando también la eficiencia contra la versión en c en la cuál se hace el cálculo de un sólo píxel por instrucción.
+\subsubsection{Rendimiento}
+Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512 y utilando los parámetros: mín = 64, máx = 128 y Q = 16.
+\begin{center}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        Medición & Implementación C & Implementación assembler & Relación \\
+        \hline
+        Ticks    & 785867600      & 70172072               & $8.92\%$ \\
+        Ciclos   & 7858676        & 701721                & $8.92\%$ \\
+        \hline
+    \end{tabular}
+\end{center}
