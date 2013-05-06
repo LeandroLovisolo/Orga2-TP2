@@ -1,34 +1,30 @@
-La idea de utilizar assembler fue principalmente aprobechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro xmm de 128 bits entran 16 bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte; podriamos pensar en trabajar con 16 pixeles de la imagen de manera simultanea. 
+La idea de utilizar assembler fue principalmente aprobechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro xmm de $128$ bits entran $16$ bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte; podriamos pensar en trabajar con 16 pixeles de la imagen de manera simultanea. 
 
 Para entender mejor lo implementado en assembler primero presentaremos un pseudocodigo del algoritmo:
 
 //Pseudocodigo
 
-El primer problema con el que nos encontramos mirando el pseudocodigo, es que teniendo en cuenta que cada pixel puede tener un número entre el 0 y el 255, al obtener la suma de 4 pixeles podemos encontrarnos en ciertos casos con que dicha suma supere el valor 255 y no lo podamos reprecentar con un solo byte. Es por esto que tuvimos que desempaquetar los 16 bytes a word, alojando la parte baja en un registo y la parte alta en otro. De esta manera, seguimos teniendo 16 pixeles de la imagen, pero ya no de forma simultanea, sino duplicando los pasos, ya que cada instrucción tiene que ser llamada dos veces, una para cada registro.
+El primer problema con el que nos encontramos mirando el pseudocodigo, es que teniendo en cuenta que cada pixel puede tener un número entre el $0$ y el $255$, al obtener la suma de $4$ pixeles podemos encontrarnos en ciertos casos con que dicha suma supere el valor $255$ y no lo podamos reprecentar con un solo byte. Es por esto que tuvimos que desempaquetar los $16$ bytes a word, alojando la parte baja en un registo y la parte alta en otro. De esta manera, seguimos teniendo $16$ pixeles de la imagen, pero ya no de forma simultanea, sino duplicando los pasos, ya que cada instrucción tiene que ser llamada dos veces, una para cada registro.
 
-El segundo problema con el que nos encontramos es que la imagen es una matriz de pixeles de dimensiones desconocidas, y podriamos encontrarnos con casos donde el alto o el ancho de la misma contenga una cantidad impar de pixeles. Como el filtro funciona con bloques de 2x2, y el enunciado dice que la imagen de destino tiene que tener dimensiones pares, lo que hacemos en estos casos, es decrementar en uno el alto y/o ancho si estos si son impares.
+El segundo problema con el que nos encontramos es que la imagen es una matriz de pixeles de dimensiones desconocidas, y podriamos encontrarnos con casos donde el alto o el ancho de la misma contenga una cantidad impar de pixeles. Como el filtro funciona con bloques de $2x2$, y el enunciado dice que la imagen de destino tiene que tener dimensiones pares, lo que hacemos en estos casos, es decrementar en uno el alto y/o ancho si estos si son impares.
 
 Por otro lado, en algunos pasos del algoritmo fue necesario la utilización de mascaras y valores predefinidos, las cuales eran siempre los mismos sin importar en que iteración estemos trabajando, es por esto que las calculamos al principio antes de empezar a recorrer la imagen, para de esta manera ahorrar llamados a memoria, los cuales reducen significativamente la velocidad de procesamiento de la aplicación.
 
 estos valores son:
 \begin{itemize}
-  \item xmm12 $\Rightarrow$ Contiene 16 bytes packed con el mínimo
-  \item xmm11 $\Rightarrow$ Contiene el mínimo packed en words
-  \item xmm5 $\Rightarrow$ Contiene el máximo packed en words
-  \item xmm6 $\Rightarrow$ Contiene la representación flotante de Q packed
-  	\item XMM9 $\Rightarrow$ contiene en sus dos quadword el valor 0xffffffffffffffff
-	\item XMM10 $\Rightarrow$ contiene en sus dos quadword el valor 0x00ff00ff00ff00ff
-	\item XMM11 $\Rightarrow$ contiene en sus dos quadword el valor 0xff00ff00ff00ff00
-	\item XMM12 $\Rightarrow$ 205,205,205,205,205,205,205,205
-	\item XMM13 $\Rightarrow$ 410,410,410,410,410,410,410,410
-	\item XMM14 $\Rightarrow$ 615,615,615,615,615,615,615,615
-	\item XMM15 $\Rightarrow$ 820,820,820,820,820,820,820,820 
+  	\item $xmm9$ $\Rightarrow$ contiene en sus dos quadword el valor $0xffffffffffffffff$
+	\item $xmm10$ $\Rightarrow$ contiene en sus dos quadword el valor $0x00ff00ff00ff00ff$
+	\item $xmm11$ $\Rightarrow$ contiene en sus dos quadword el valor $0xff00ff00ff00ff00$
+	\item $xmm12$ $\Rightarrow$ $205$,$205$,$205$,$205$,$205$,$205$,$205$,$205$
+	\item $xmm13$ $\Rightarrow$ $410$,$410$,$410$,$410$,$410$,$410$,$410$,$410$
+	\item $xmm14$ $\Rightarrow$ $615$,$615$,$615$,$615$,$615$,$615$,$615$,$615$
+	\item $xmm15$ $\Rightarrow$ $820$,$820$,$820$,$820$,$820$,$820$,$820$,$820$ 
 \end{itemize}
 
 \subsubsection{Descripción del ciclo:}
 
 \begin{itemize}
-	\item El primer paso realizado dentro de un ciclo es obtener los proximos 16 pixeles de la fila actual de la imagen en el registro xmm0, y los 16 pixeles correspondientes de la fila siguiente en el registro xmm2, para luego trabajar con 8 bloques de 2x2 a la misma vez. 
+	\item El primer paso realizado dentro de un ciclo es obtener los proximos $16$ pixeles de la fila actual de la imagen en el registro $xmm0$, y los $16$ pixeles correspondientes de la fila siguiente en el registro $xmm2$, para luego trabajar con $8$ bloques de $2x2$ a la misma vez. 
 
 	\begin{figure}[H]
 		\centering
@@ -37,8 +33,8 @@ estos valores son:
 		\label{bloques}
 	\end{figure}
 
-	\item El segundo paso consiste en desempaquetar los datos utilizando la instrucción PUNPCKHBW y PUNPCKLBW. Obteniendo de esta manera el valor de los pixeles en word's en los registros xmm0,xmm1 los de la fila actual y en xmm2,xmm3 los de la siguiente fila.
-	Es importante destacar en este paso, que la parte baja del registro xmm0 es desempaquetada en el mismo registro, miestras que la parte alta se desempaqueta guardando el resultado en el registro xmm1. lo mismo pasa con xmm2-xmm3, teniendo en cuenta que el valor del pixel es un Integer Unsigned, al desempaquetar completamos con 0's y seguimos teniendo el mismo número. ver figura PONER EL LABEL
+	\item El segundo paso consiste en desempaquetar los datos utilizando la instrucción PUNPCKHBW y PUNPCKLBW. Obteniendo de esta manera el valor de los pixeles en word's en los registros $xmm0$,$xmm1$ los de la fila actual y en $xmm2$,$xmm3$ los de la siguiente fila.
+	Es importante destacar en este paso, que la parte baja del registro $xmm0$ es desempaquetada en el mismo registro, miestras que la parte alta se desempaqueta guardando el resultado en el registro $xmm1$. lo mismo pasa con $xmm2$-$xmm3$, teniendo en cuenta que el valor del pixel es un Integer Unsigned, al desempaquetar completamos con $0$'s y seguimos teniendo el mismo número. ver figura PONER EL LABEL
 
 	\begin{figure}[H]
 		\centering
@@ -47,7 +43,7 @@ estos valores son:
 		\label{PUNPCK}
 	\end{figure}
 
-	\item El tercer paso del ciclo es sumar el valor de cada bloque de 2x2. Para esto utilizamos 2 instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros xmm0 y xmm1 las sumas parciales de los bloques. O de otra forma; siendo (i,j) y (i+1,j) la posiciones de la imagen desde donde se obtienen los proximos 32 bytes, lo que obtenemos en el word más bajo de xmm0 es la suma del pixel (i,j) con el pixel (i+1,j) y asi hasta el word más alto de xmm1 donde tenemos la suma entre el pixel (i,j+15) con el pixel (i+1,j+15). ver figura PONER LABEL
+	\item El tercer paso del ciclo es sumar el valor de cada bloque de $2x2$. Para esto utilizamos $2$ instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros $xmm0$ y $xmm1$ las sumas parciales de los bloques. O de otra forma; siendo $(i,j)$ y $(i+1,j)$ la posiciones de la imagen desde donde se obtienen los proximos $32$ bytes, lo que obtenemos en el word más bajo de $xmm0$ es la suma del pixel $(i,j)$ con el pixel $(i+1,j)$ y asi hasta el word más alto de $xmm1$ donde tenemos la suma entre el pixel $(i,j+15)$ con el pixel $(i+1,j+15)$. ver figura PONER LABEL
 
 	\begin{figure}[H]
 		\centering
@@ -57,9 +53,9 @@ estos valores son:
 	\end{figure}
 
 
-	La segunda instrucción (PHADDW) es utilizada para obtener la suma total de cada uno de los bloques. Tomando como ejemplo el bloque compuesto por los pixeles (i,j),(i,j+1),(i+1,j) y (i+1,j+1), ya tenemos las sumas parciales de los mismos en el registro xmm0. Más precisamente, tenemos en el word mas bajo del registro la suma de los pixeles (i,j) y (i+1,j) y el el siguiente word mas bajo la suma de los pixeles (i,j+1) y (i+1,j+1), por lo que al sumar estos dos word que se encuentran de manera consecutiva en el registro xmm0, lo que obtenemos es la suma total del bloque. 
+	La segunda instrucción (PHADDW) es utilizada para obtener la suma total de cada uno de los bloques. Tomando como ejemplo el bloque compuesto por los pixeles $(i,j)$,$(i,j+1)$,$(i+1,j)$ y $(i+1,j+1)$, ya tenemos las sumas parciales de los mismos en el registro $xmm0$. Más precisamente, tenemos en el word mas bajo del registro la suma de los pixeles $(i,j)$ y $(i+1,j)$ y el el siguiente word mas bajo la suma de los pixeles $(i,j+1)$ y $(i+1,j+1)$, por lo que al sumar estos dos word que se encuentran de manera consecutiva en el registro $xmm0$, lo que obtenemos es la suma total del bloque. 
 
-	Dado que cada registro xmm tiene 8 word y que cada bloque esta compuesto por dos word consecutivos del mismo registro, la instrucción PHADD utilizando como operandos los registros xmm0 y xmm1 devuelven en el registro xmm0 efectivamente la suma total para cada uno de los 8 bloques que se estan procesando en simultaneo. ver figura PONER LABEL
+	Dado que cada registro xmm tiene $8$ word y que cada bloque esta compuesto por dos word consecutivos del mismo registro, la instrucción PHADD utilizando como operandos los registros $xmm0$ y $xmm1$ devuelven en el registro $xmm0$ efectivamente la suma total para cada uno de los $8$ bloques que se estan procesando en simultaneo. ver figura PONER LABEL
 
 	\begin{figure}[H]
 		\centering
@@ -68,4 +64,7 @@ estos valores son:
 		\label{PHADDW}
 	\end{figure}
 
-	\item
+	\item El cuarto paso consiste en reemplazar cada bolque de $2x2$ por el bloque que le corresponda, dependiendo de el valor obtenido en la suma total del mismo.
+
+	Para esto utilizamos los registros $xmm12$ al $xmm15$ en los cuales estan guardados en paquet word los valores $205$,$410$,$15$ y $810$.
+	Mirando como son los bloques predefinidos en el enunciado, y teniendo en cuenta que el valor $255$ que reprecenta al blanco en un byte es $0xff$ y el del negro es $0x0$, armamos dos mascaras con los valores $0x00ff00ff00ff00ff00ff00ff00ff00ff$ y $0xff00ff00ff00ff00ff00ff00ff00ff00$. 
