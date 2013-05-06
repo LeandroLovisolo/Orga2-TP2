@@ -34,7 +34,7 @@ estos valores son:
 	\end{figure}
 
 	\item El segundo paso consiste en desempaquetar los datos utilizando la instrucción PUNPCKHBW y PUNPCKLBW. Obteniendo de esta manera el valor de los pixeles en word's en los registros $xmm0$,$xmm1$ los de la fila actual y en $xmm2$,$xmm3$ los de la siguiente fila.
-	Es importante destacar en este paso, que la parte baja del registro $xmm0$ es desempaquetada en el mismo registro, miestras que la parte alta se desempaqueta guardando el resultado en el registro $xmm1$. lo mismo pasa con $xmm2$-$xmm3$, teniendo en cuenta que el valor del pixel es un Integer Unsigned, al desempaquetar completamos con $0$'s y seguimos teniendo el mismo número. ver figura PONER EL LABEL
+	Es importante destacar en este paso, que la parte baja del registro $xmm0$ es desempaquetada en el mismo registro, miestras que la parte alta se desempaqueta guardando el resultado en el registro $xmm1$. lo mismo pasa con $xmm2$,$xmm3$, teniendo en cuenta que el valor del pixel es un Integer Unsigned, al desempaquetar completamos con $0$'s y seguimos teniendo el mismo número. ver figura PONER EL LABEL
 
 	\begin{figure}[H]
 		\centering
@@ -43,7 +43,7 @@ estos valores son:
 		\label{PUNPCK}
 	\end{figure}
 
-	\item El tercer paso del ciclo es sumar el valor de cada bloque de $2x2$. Para esto utilizamos $2$ instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros $xmm0$ y $xmm1$ las sumas parciales de los bloques. O de otra forma; siendo $(i,j)$ y $(i+1,j)$ la posiciones de la imagen desde donde se obtienen los proximos $32$ bytes, lo que obtenemos en el word más bajo de $xmm0$ es la suma del pixel $(i,j)$ con el pixel $(i+1,j)$ y asi hasta el word más alto de $xmm1$ donde tenemos la suma entre el pixel $(i,j+15)$ con el pixel $(i+1,j+15)$. ver figura PONER LABEL
+	\item El tercer paso del ciclo es sumar el valor de cada bloque de $2x2$. Para esto utilizamos $2$ instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros $xmm0$ y $xmm1$ las sumas parciales de los bloques. O de otra forma; siendo $(i,j)$ y $(i+1,j)$ la posiciones de la imagen desde donde se obtienen los proximos $32$ bytes a procesar, lo que obtenemos en el word más bajo de $xmm0$ es la suma del pixel $(i,j)$ con el pixel $(i+1,j)$ y asi hasta el word más alto de $xmm1$ donde tenemos la suma entre el pixel $(i,j+15)$ con el pixel $(i+1,j+15)$. ver figura PONER LABEL
 
 	\begin{figure}[H]
 		\centering
@@ -64,7 +64,43 @@ estos valores son:
 		\label{PHADDW}
 	\end{figure}
 
-	\item El cuarto paso consiste en reemplazar cada bolque de $2x2$ por el bloque que le corresponda, dependiendo de el valor obtenido en la suma total del mismo.
+	\item El cuarto paso consiste en reemplazar cada bolque de $2x2$ por el bloque que le corresponda dependiendo de el valor obtenido en la suma total del mismo.
 
-	Para esto utilizamos los registros $xmm12$ al $xmm15$ en los cuales estan guardados en paquet word los valores $205$,$410$,$15$ y $810$.
-	Mirando como son los bloques predefinidos en el enunciado, y teniendo en cuenta que el valor $255$ que reprecenta al blanco en un byte es $0xff$ y el del negro es $0x0$, armamos dos mascaras con los valores $0x00ff00ff00ff00ff00ff00ff00ff00ff$ y $0xff00ff00ff00ff00ff00ff00ff00ff00$. 
+	Para esto utilizamos los registros $xmm12$ al $xmm15$, en los cuales estan guardados en paquet word los valores $205$,$410$,$615$ y $820$.
+
+	Mirando como son los bloques predefinidos en el enunciado, y teniendo en cuenta que el valor $255$ que reprecenta al blanco en un byte es $0xff$ y el del negro es $0x0$, armamos dos mascaras con los valores $0x00ff00ff00ff00ff00ff00ff00ff00ff$ y $0xff00ff00ff00ff00ff00ff00ff00ff00$. Estas mascaras dejan los valores ya seteados en bytes, por lo que luego no hay que empaquetarlos.
+	Para entender bien la idea miremos observemos primero lo siguiente:
+
+	Cada pixel de la imagen ocupa un byte, pero como arrancamos de la posición $0$ y siempre nos movemos una cantidad par de posiciones en cada iteración (en particular nos movemos de a $16$ pixeles), sabemos que en los registros donde guardaremos el resultado para mandar al destino, cada par contiguo de pixeles pertenese a un mismo bloque de $2x2$, dado que la suma total de cada bloque también está guardada en word's, y que dos pixeles contiguos ocupan un word, podemos ver que la suma de un bloque abarca a todos los pixeles del mismo. ver figura PONER LABEL
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=15cm]{halftone/masckBloques.png}
+		\caption{relación entre el espacio ocupado por la suma total de un bloque y los pixeles del mismo en bytes.}
+		\label{masckBloques}
+	\end{figure}
+
+	Luego, obtenemos la mascara resultante de comparar la suma total de los boques que se estan procesando con los valores $205$,$410$,$615$ y $820$. Esta mascara está en word's empaquetados, en los cuales hay unos o ceros dependiendo de si el word pertenece a un bloque cuya suma es mayor o menor que los valores con los que es comparado. 
+
+	Sabiendo que para todo bloque mayor a $205$ el primer pixel de la primer fila debe ser blanco. a la mascara de comparaciones le aplicamos la mascara con los valores  $0xff00ff00ff00ff00ff00ff00ff00ff00$ y lo que obtuvimos fue que para aquellos boques mayores a $205$ los bytes de posiciones pares tienen unos mientras que los impares tienen ceros. Como vimos recien que el byte tenga unos es lo mismo a que tenga un $255$ por lo que de esta manera ya tenemos en la mascaraa resultante los valores deseados para las posiciones pares de la primer fila y ceros en las posiciones impares.
+
+	Esto mismo es realizado para los valores $410$,$615$ y $801$ obteniendo en $4$ registros xmm los valores de cada pixel procesado, luego para unir estos valores, se hace un POR entre los dos registros pertenecientes a la primer fila y otro POR entre los dos registros pertenecientes a la segunda fila y asi obtenemos el resultado ya listo para mandar a memoria. Ver figura PONER LABEL
+
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=15cm]{halftone/masckResult.png}
+		\caption{creacion de las mascaras y obtención del resultado a guardar.}
+		\label{masckResult}
+	\end{figure}
+
+	La instrucción utilizada para esta comparación es PCMPGTW.
+
+	\item Este ultimo paso consiste en guardar en la memoria correspondiente los pixeles ya procesados.
+
+\subsubsection{Comparación con el lenguaje C}
+Mirano el pseudocodigo del algoritmo en C se puede ver que la principal diferencia es que mientras que en un ciclo del codigo en C se procesa un solo bloque, en assembler estamos procesando 8. Pero ademas de esto, para obtener los pixeles de un bloque en C tenemos que hacer 4 llamados a memoria mientras que en assembler para obtener los 8 bloques hacemos 2 llamados en memoria.	Esto mismo se repite a la hora de guardar los datos en la imagen de destino.
+
+Por otro lado teniendo en cuenta ciertas propiedades, como el hecho de que un byte con todos unos es un byte con un $255$ en Unsigned Integer, en la version assembler sabemos que al crear la mascara ya tenemos colocado el valor deseado. El compilador no utiliza tales propiedades como tampoco utiliza instrucciones SIMD. Es por esto que ademas de utilizar instrucciones de comparación agrega instrucciónes para insertar los valores deseados, generando mas lentitud en el algoritmo. 
+
+Si nos ponemos a ver con un poco mas de detalles, para realizar la suma del bloque que se esta procesando, en C se utilizan cuatro repeticiones de la instrucción ADD por cada bloque, por lo cual se realizan $32$ ADD para obtener la suma de 8 bloques, mientras que al utilizar SIMD, con 2 instrucciones PADDW y una instruccion PHADDW obtenemos las mismas sumas.
+
