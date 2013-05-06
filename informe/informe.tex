@@ -38,6 +38,12 @@
 %%%%%%%%%% Configuración de Fancyhdr - Fin %%%%%%%%%%
 
 %%%%%%%%%% Configuración de Algorithmic - Inicio %%%%%%%%%%
+% Entorno propio para customizar la presentación del pseudocódigo
+\newenvironment{pseudocodigo}
+    {\vspace{0.5em} \begin{algorithmic}}
+    {\end{algorithmic} \vspace{0.5em}}
+
+% Alinear comentarios a la derecha
 \renewcommand{\algorithmiccomment}[1]{\hfill \{#1\}}
 %%%%%%%%%% Configuración de Algorithmic - Fin %%%%%%%%%%
 

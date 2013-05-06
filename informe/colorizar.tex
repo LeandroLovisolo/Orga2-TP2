@@ -61,11 +61,11 @@ Veamos a continuación cada etapa en detalle.
 
 Cargamos los píxeles de cada fila del cuadrado de lado 3 como se indica a continuación:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \STATE \texttt{MOVDQU} \xmm{1}, $src[y-1][x-3]$
     \STATE \texttt{MOVDQU} \xmm{2}, $src[y][x-3]$
     \STATE \texttt{MOVDQU} \xmm{3}, $src[y+1][x-3]$        
-\end{algorithmic}
+\end{pseudocodigo}
 
 Contenido de los registros \xmm{1}, \xmm{2} y \xmm{3} en este instante:
 
@@ -111,11 +111,11 @@ El siguiente paso es comparar los valores de cada canal entre sí para hallar lo
 
 Lo primero que hacemos es reordenar los bytes en \xmm{1}, \xmm{2} y \xmm{3}:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \STATE \texttt{PSHUFB} \xmm{1}, \textit{máscara}
     \STATE \texttt{PSHUFB} \xmm{2}, \textit{máscara}
     \STATE \texttt{PSHUFB} \xmm{3}, \textit{máscara}
-\end{algorithmic}
+\end{pseudocodigo}
 
 La \textit{máscara} provista es tal que los bytes de los registros quedan
 reordeados de la siguiente forma:
@@ -133,10 +133,10 @@ reordeados de la siguiente forma:
 A continuación, buscamos los máximos byte a byte entre \xmm{1} y \xmm{2} y luego entre
 \xmm{1} y \xmm{3} de manera de obtener los máximos por canal ``columna a columna'':
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \STATE \texttt{PMAXUB} \xmm{1}, \xmm{2}
     \STATE \texttt{PMAXUB} \xmm{1}, \xmm{3}    
-\end{algorithmic}
+\end{pseudocodigo}
 
 La siguiente ilustración muestra lo que ocurre con los primeros 3 bytes de
 \xmm{1}, \xmm{2} y \xmm{3}, que contienen los valores del canal B para los
@@ -289,11 +289,11 @@ Recordemos las ecuaciones:
 
 Procedemos a hallar $I_{src_{R,G,B}}(i, j)$:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \STATE \texttt{MOVDQU} \xmm{2},   $src[j][i]$      \COMMENT{leo el pixel original}
     \STATE \texttt{PSHUFB} \xmm{2},   \textit{máscara} \COMMENT{reacomodo y limpio registro}
     \STATE \texttt{CVTDQ2PS} \xmm{2}, xmm{2}           \COMMENT{convierto cada canal a float}
-\end{algorithmic}
+\end{pseudocodigo}
 
 En este instante \xmm{2} contiene el valor de cada canal del pixel original
 convertido a punto flotante como se ilustra a continuación:
@@ -307,14 +307,14 @@ convertido a punto flotante como se ilustra a continuación:
 Multiplicamos cada canal por el valor $\Phi$ correspondiente y buscamos
 el mínimo entre este producto y 255:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \STATE \texttt{MULPS}    \xmm{2}, \xmm{1} \COMMENT{\xmm{2} $\leftarrow$ $\Phi \ast I_{src}$}
     \STATE \texttt{MOVDQU}   \xmm{1}, \textit{tupla 255}
         \COMMENT{cargo el valor 255 en los 3 floats más bajos de \xmm{1}}
     \STATE \texttt{MINPS}    \xmm{1}, \xmm{2}
         \COMMENT{\xmm{1} $\leftarrow$ $min(255, \Phi \ast I_{src}) = I_{dst}$}
     \STATE \texttt{CVTPS2DQ} \xmm{1}, \xmm{1} \COMMENT{convertimos a enteros los $I_{dst}$ hallados}
-\end{algorithmic}
+\end{pseudocodigo}
 
 El contenido de de \xmm{1} es ahora:
 
