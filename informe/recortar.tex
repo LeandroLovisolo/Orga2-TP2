@@ -42,20 +42,21 @@ El pseudocódigo a continuación describe el ciclo completo de la implementació
 
 \subsubsection{Rendimiento}
 
-Se observan las siguientes cantidades de ciclos y ticks de reloj al realizar 1000 iteraciones de ambas implementaciones:
+Se observan las siguientes cantidades de ciclos y ticks de reloj al realizar 1000 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512 y tamaño de esquina 100.
 
 \begin{center}
     \begin{tabular}{|l|l|l|l|}
         \hline
         Medición & Implementación C & Implementación assembler & Relación \\
         \hline
-        Ticks    & 385953030        & 23853906           & 6.43\% \\
-        Ciclos   & 378948.344       & 24397.717          & 6.43\% \\
+        Ticks    & 385953030        & 23853906                 & $6.43\%$ \\
+        Ciclos   & 378948.344       & 24397.717                & $6.43\%$ \\
         \hline
     \end{tabular}
 \end{center}
 
-Dado que la implementación assembler accede a la memoria de a 16 bytes por vez, la cantidad de accesos totales será
-aproximadamente $\frac{1}{16} = 0.0625$ veces la cantidad de accesos a memoria de la implementación C
-(no es exactamente esa cantidad pues los ajustes de fin de línea introducen un pequeño adicional de lecturas,
-dependiendo del ancho de la imagen.) Notemos que este número se condice con las mediciones de rendimiento realizadas.
+Dado que la implementación assembler accede a la memoria de a 16 bytes por vez, la cantidad de
+accesos totales será aproximadamente $\frac{1}{16} = 0.0625 = 6.25\%$ la cantidad de
+accesos a memoria de la implementación C (no es exactamente esa cantidad pues los ajustes de
+fin de línea introducen un pequeño adicional de lecturas, dependiendo del ancho de la imagen.)
+Notemos que este número se condice con las mediciones de rendimiento realizadas.

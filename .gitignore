@@ -15,6 +15,8 @@ informe/*.aux
 informe/*.log
 informe/*.toc
 informe/*.gz
+informe/*.fdb_latexmk
+informe/*.fls
 
 # Sublime Text
 *.sublime-project
