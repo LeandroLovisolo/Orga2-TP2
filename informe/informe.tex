@@ -1,7 +1,8 @@
 \documentclass[a4paper,10pt,twoside]{article}
+
 \usepackage{a4wide}
 \usepackage[utf8]{inputenc}
-\usepackage[spanish,es-ucroman]{babel}
+\usepackage[spanish,es-ucroman,es-noquoting]{babel}
 \usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
@@ -11,8 +12,9 @@
 \usepackage{graphicx}
 \usepackage{blindtext}
 \usepackage{listings}
-\usepackage{tikz}
 \usepackage{algorithmic}
+\usepackage{tikz}
+\usetikzlibrary{calc}
 
 
 % Evita que el documento se estire verticalmente para ocupar
@@ -39,6 +41,9 @@
 \renewcommand{\algorithmiccomment}[1]{\hfill \{#1\}}
 %%%%%%%%%% Configuración de Algorithmic - Fin %%%%%%%%%%
 
+%%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
+\newcommand{\xmm}[1]{\texttt{XMM#1}}
+%%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
 
 \begin{document}
 
@@ -138,10 +143,14 @@ Lautaro José Petaccio & 443/11 & lausuper@gmail.com\\
 
 \subsection{Colorizar}
 
+\input{colorizar}
+
 \subsection{Efecto plasma}
 
 \subsection{Rotar}
+
 \input{rotar}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resultados                                                                %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,7 +162,7 @@ Lautaro José Petaccio & 443/11 & lausuper@gmail.com\\
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Conclusión                                                                 %%
+%% Conclusión                                                                %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
