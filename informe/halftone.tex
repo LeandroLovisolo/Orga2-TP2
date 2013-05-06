@@ -1,0 +1,25 @@
+La idea de utilizar assembler fue principalmente aprobechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro xmm de 128 bits entran 16 bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte; podriamos pensar en trabajar con 16 pixeles de la imagen de manera simultanea. El primer problema con el que nos encontramos, es que cada pixel puede tener un número del 0 al 255 y como en la implementación de Halftone se necesita obtener la suma de 4 pixeles, entonces podemos encontrarnos en ciertos casos con que dicha suma supere el valor 255 y no lo podamos reprecentar con un solo byte. Es por esto que tuvimos que desempaquetar los 16 bytes a word, alojando la parte baja en un registo y la parte alta en otro. De esta manera, seguimos teniendo 16 pixeles de la imagen, pero ya no de forma simultanea, sino duplicando los pasos, ya que cada instrucción tiene que ser llamada dos veces, una para cada registro.
+Por otro lado, como el filtro procesa bloques de 2x2 y la cantidad de registros xmm no lo permite, en cada iteración se traen, no solos los 16 bytes siguientes de la fila actual, sino los 16 bytes correspondientes de la fila siguiente.
+
+El segundo problema con el que nos encontramos es que la imagen es una matriz de pixeles de dimensiones desconocidas, y podriamos encontrarnos con casos donde el alto o el ancho de la misma contenga una cantidad impar de pixeles. Como el filtro funciona con bloques de 2x2, y el enunciado dice que la imagen de destino tiene que tener dimensiones pares, lo que hacemos en estos casos, es decrementar en uno el alto y/o ancho si estos si son impares.
+
+Por otro lado, en algunos pasos del algoritmo fue necesario la utilización de mascaras y valores predefinidos, las cuales eran siempre los mismos sin importar en que iteración estemos trabajando, es por esto que las calculamos al principio antes de empezar a recorrer la imagen, para de esta manera ahorrar llamado a memoria los cuales reducen significativamente la velocidad de procesamiento de la aplicación.
+
+estos valores son:
+\begin{itemize}
+  \item xmm12 $\Rightarrow$ Contiene 16 bytes packed con el mínimo
+  \item xmm11 $\Rightarrow$ Contiene el mínimo packed en words
+  \item xmm5 $\Rightarrow$ Contiene el máximo packed en words
+  \item xmm6 $\Rightarrow$ Contiene la representación flotante de Q packed
+  	\item XMM9 $\Rightarrow$ contiene en sus dos quadword el valor 0xffffffffffffffff
+	\item XMM10 $\Rightarrow$ contiene en sus dos quadword el valor 0x00ff00ff00ff00ff
+	\item XMM11 $\Rightarrow$ contiene en sus dos quadword el valor 0xff00ff00ff00ff00
+	\item XMM12 $\Rightarrow$ 205,205,205,205,205,205,205,205
+	\item XMM13 $\Rightarrow$ 410,410,410,410,410,410,410,410
+	\item XMM14 $\Rightarrow$ 615,615,615,615,615,615,615,615
+	\item XMM15 $\Rightarrow$ 820,820,820,820,820,820,820,820 
+\end{itemize}
+
+\subsubsection{Descripción del ciclo:}
+Teniendo en cuenta que debo procesar 
+El primer paso realizado dentro de un ciclo es obtener los proximos 16 pixeles de la imagen en el registro xmm
