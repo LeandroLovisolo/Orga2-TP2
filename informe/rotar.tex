@@ -1,32 +1,48 @@
+El filtro rotar consiste en realizar una rotación de la imagen original.
+
 El filtro rotar es el menos capacitado para paralelización. Esta dificultad proviene de la imposibilidad de traer bytes y procesarlos simultaneamente, debido a que el valor de cada pixel en la imagen destino se obtiene calculando, según su posición, qué pixel corresponde de la imagen fuente, lo que implica traer uno a uno los pixeles de la imagen fuente para colocarlos en en lugar indicado en la imágen destino.
 
 Analizando el algoritmo, llegamos a la conclusión de que la mejor manera de explotar la simultaneidad que nos brinda las instrucciones SIMD, es utilizarlas para calcular las posiciones de dónde sacar el pixel para colorcarlo en la imagen destino. 
 
 Inicialmente este proceso fue realizado utilizando single precision floats para poder aprovechar SIMD al máximo y realizar cálculos para conseguir las posiciones de donde sacar los pixeles a la vez. Este intento se vió frustrado al correr el filtro y compararlo contra las imágenes provistas por la cátedra. Si bien la imagen coincidía visualmente, se encontraron errores en 27 pixeles. Un análisis de estos pixeles pusieron en evidencia un problema de precisión, el cual se intentó arreglar utilizando la instrucción roundps sin conseguir mejores resultados. Se solucióno el problema realizando los cálculos usando double precision floats con SIMD para luego convertirlos a floats y finalmente convertirlos a enteros para poder funcionar como posición.
 
-Para optimizar la implementación, se realiza el cálculo de cx, cy y $\sqrt[2]{2}/2$ al inicio del programa.
-
-El programa recorre las posiciones de la imagen destino y les asigna su valor según su posición.
-
 \subsubsection{Descripción del ciclo}
-El ciclo comienza poniendo en 0 mediante la instrucción por el registro xmm7 el cuál se encargará de acumular 16 bytes con los valores correspondientes de los píxeles.
+El filtro se divide en cinco etapas:
+\begin{enumerate}
+\item \textbf{Pre-ciclo principal e inicio:} Se crean ciertos registros que serán de utilidad en el ciclo.
+\item \textbf{Ciclo para obtención de posiciones:} Se obtiene mediante un ciclo los valores de x e y para las siguientes cuatro posiciones.
+\item \textbf{Cálculo de u y v:} Cálculo de los valores u y v correspondientes a x e y en la imagen fuente.
+\item \textbf{Ciclo de almacenamiento de los valores correspondientes a las posiciones procesadas:} Se buscan los valos de los pixeles en la imagen fuente que se escribirán en la imagen destino.
+\item \textbf{Escritura de los pixeles en la imagen destino y fin del ciclo principal:}
+\end{enumerate}
 
- El algoritmo continúa con un pequeño ciclo interno el cuál se encarga de poner en 2 registros temporales los valores de las posiciones x e y de 4 pixeles sucesivos. Una vez realizado esto, para poder trabajar con los 4 pixeles utilizando doubles, se mueve el contenido de estos registros a registros xmm dónde se los convierte y se los almacena 4 registros xmm, 2 con los 2 doubles más bajos y altos de las coordenadas x y 2 con los 2 doubles más bajos y altos de las coordenadas y.
+\subsubsection{Pre-ciclo principal}
+Para optimizar la implementación, se realiza el cálculo de cx, cy y $\sqrt[2]{2}/2$ al inicio del programa. También se ponen en 0 los registros r11 y r15 que servirán para establecer en que posición x e y respectivamente se encuentra en la imagen.
 
+El ciclo principal comienza poniendo en 0 mediante la instrucción por el registro xmm7 el cuál se encargará de acumular los pixeles hasta llenarse sus 16 bytes.
+
+\subsubsection{Ciclo para obtención de posiciones}
+Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones x e y de cuatro pixeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro pixeles utilizando doubles, se mueve el contenido de estos registros a registros xmm dónde se los convierte y se los almacena en cuatro registros xmm, dos con los dos doubles más bajos y altos de las coordenadas x y dos con los dos doubles más bajos y altos de las coordenadas y.
+
+\subsubsection{Cálculo de u y v}
 Se opera sobre los doubles utilizando instrucciones SIMD, obteniedo los valores u y v, es decir, los valores x e y respectivamente de dónde conseguir el pixel a poner en la imágen fuente.
 
 Al finalizar el cálculo se convierten de doubles a floats y de floats a enteros y vuelven a colocar las coordenadas x en un registro xmm y las coordenadas y en otro cómo estaban antes.
 
+\subsubsection{Ciclo de almacenamiento de los valores correspondientes a las posiciones procesadas}
 Después de esta conversión, se pasa a un pequeño ciclo el cuál se encarga de tomar cada coordenada, ver si cumplen las restricciones del cálculo para u y v, y colocar en el caso de que se cumpla, en un acumulador, el valor del pixel que tenga en la posición en la imagen fuente y si no, un 0.
 
-Al terminar este ciclo, se agregan los valores de estos 4 bytes al el acumulador principal que se creó al comienzo del ciclo y se vuelve a ciclar realizando el mismo proceso hasta llenar el acumulador con los valores correspondientes de los 16 bytes o 16 pixeles contiguos.
+Terminado el ciclo de almacenamiento, se agregan los valores de estos 4 bytes al acumulador principal, creado al comienzo del ciclo, y se vuelve a ciclar realizando el mismo proceso hasta llenar el acumulador con los valores correspondientes de los 16 bytes o 16 pixeles contiguos.
 
-En el final de cada iteración del ciclo princiapl, se checkea la posición de la imagen en la que se está (por si ya se ha terminado de recorrerla o se es necesario correr para atrás para agarrar 16 pixeles exactos) y si se ha llenado el acumulador. Si el acumulador se llena (habiendo pasado 4 ciclos) se mueven los 16 bytes a la imagen destino, economizando el movimiento de datos.
+\subsubsection{Escritura de los pixeles en la imagen destino y fin del ciclo principal}
 
-\subsubsection{Comparación con el lenguaje C}
+En el final de cada iteración del ciclo princiapl, se checkea la posición de la imagen en la que se está (por si ya se ha terminado de recorrerla o se es necesario correr para atrás para agarrar 16 pixeles exactos) y si se ha llenado el acumulador. Si el acumulador se llena (habiendo pasado 4 ciclos) se escriben los 16 bytes a la imagen destino. Este mecanismo en el cuál se van almacenando los pixeles tiene como sentido economizar la escritura de datos.
+
+\subsubsection{Comparación con la implementación C}
+Cómo el algoritmo no es muy paralelizable, ambas implementaciones comparten acciones cómo la comparacion individual y la lectura en memoria de cada pixel. Sin embargo, se diferencian a hora de calcular las posiciones dónde están los valores de los pixeles a poner en la imagen destino, que se realizan utilizando instrucciones SIMD de a 2 doubles en simultaneo contra las operaciones secuenciales que realiza el lenguaje en C. También, la escritura a memoria se hace de a 16 bytes por el lado del programa en ensamblador contra la versión en C, ahorrando ciclos.
+
 Decompilando la versión de rotar en c utilizando objdump -d -M intel -S rotar\_c.o obtuvimos el código ensamblador armado por gcc.
 
-Este caso, cómo el algoritmo no es muy paralelizable, ambos códigos comparten acciones cómo la comparacion individual y la lectura en memoria de cada pixel. Sin embargo, se diferencian a hora de calcular las posiciones dónde están los valores de los pixeles a poner en la imagen destino, que se realizan utilizando instrucciones SIMD de a 2 doubles contra las operaciones sin simultaneidad que realiza el lenguaje en C. También, la escritura a memoria se hace de a 16 bytes por el lado del programa en ensamblador contra la versión en C, ahorrando ciclos.
 
 Un análisis sobre cómo opera el lenguaje C compilado con gcc nos muestra cómo las operaciones de punto flotante se realizan algunas en doubles y otras en floats y se las convierte luego a float (ya que se almacenaban en floats en la implementación en c), estas pueden verse en la figura 5.
 
@@ -56,3 +72,16 @@ movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
 Figura 5: Código ensamblador generado por gcc en el cálculo de u \\
 
 Es también notable como el lenguaje ensamblador nos permite acomodar las operaciones para realizar cálculos de la manera más optima posible, en especial utilizando SIMD para ahorrar ciclos.
+
+\subsubsection{Rendimiento}
+Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512.
+\begin{center}
+    \begin{tabular}{|l|l|l|l|}
+        \hline
+        Medición & Implementación C & Implementación assembler & Relación \\
+        \hline
+        Ticks    & 1766855008      & 727560304               & $41.17\%$ \\
+        Ciclos   & 17668550       & 7275603                & $41.17\%$ \\
+        \hline
+    \end{tabular}
+\end{center}
