@@ -16,13 +16,16 @@ una vez visto estos detalles pasemos a nombrar todos los registros que pre-setea
 
 estos valores son:
 \begin{itemize}
-	\item $xmm3$,[pi] 				$\Rightarrow$ $pi$,$pi$,$pi$,$pi$
-	\item $xmm4$,[dos]				$\Rightarrow$ $2.0$,$2.0$,$2.0$,$2.0$
-	\item $xmm5$,[jotas1] 			$\Rightarrow$ $3$,$2$,$1$,$0$
-	\item $xmm6$,[jotas2] 			$\Rightarrow$ $7$,$6$,$5$,$4$
-	\item $xmm7$,[seis] 			$\Rightarrow$ $6.0$,$6.0$,$6.0$,$6.0$
-	\item $xmm8$,[cientoVeinte] 	$\Rightarrow$ $120.0$,$120.0$,$120.0$,$120.0$
-	\item $xmm9$,[cincoMilCuarenta] $\Rightarrow$ $5040.0$,$5040.0$,$5040.0$,$5040.0$
+	\item $xmm0$ $\Rightarrow$ $x_scale$,$x_scale$,$x_scale$,$x_scale$
+	\item $xmm1$ $\Rightarrow$ $y_scale$,$y_scale$,$y_scale$,$y_scale$
+	\item $xmm2$ $\Rightarrow$ $g_scale$,$g_scale$,$g_scale$,$g_scale$
+	\item $xmm3$ $\Rightarrow$ $pi$,$pi$,$pi$,$pi$
+	\item $xmm4$ $\Rightarrow$ $2.0$,$2.0$,$2.0$,$2.0$
+	\item $xmm5$ $\Rightarrow$ $3$,$2$,$1$,$0$
+	\item $xmm6$ $\Rightarrow$ $7$,$6$,$5$,$4$
+	\item $xmm7$ $\Rightarrow$ $6.0$,$6.0$,$6.0$,$6.0$
+	\item $xmm8$ $\Rightarrow$ $120.0$,$120.0$,$120.0$,$120.0$
+	\item $xmm9$ $\Rightarrow$ $5040.0$,$5040.0$,$5040.0$,$5040.0$
 \end{itemize}
 
 \subsubsection{Descripción del ciclo:}
@@ -43,3 +46,32 @@ estos valores son:
 
 	Estos pasos son utilizados para obtener el valor siguiente, $Y = X - X^3/6 + X^5/120 - X^7/5040$ en cada doubleword de dos registros $xmm$ de forma empaquetada ($X$ hace referencia a los valores obtenidos mediante los pasos anteriores que estan empaquetados en los registros $xmm12$ y $xmm13$).
 	Para realizar esta cuenta, se guarda el valor de $xmm12$,$xmm13$ en dos registros $xmm$ para poder salvarlos, luego se copian de vuelta estos valores en otros dos registros $xmm$ que seran utilizados como acumulador. y lo siguiente a realizar es ir multiplicando y dividiendo estos registros para obtener cada uno de los terminos del polinomio y sumarselo o restarselo a los registros acumuladores para ir teniendo el valor del polinomio en los acumuladores. los dividendos utilizados estan ya pre-seteados en los registros $xmm7$,$xmm8$,$xmm9$ de forma empaquetada.
+
+	\item Una vez que tenemos el sin_taylor para los indices $j$'s de forma empaquetada en los registros $xmm12$,$xmm13$, pasamos a empaquetar el indice $i$ en el registro $xmm10$ y realizamos los mismo pasos anteriores para obtener el sin_taylor de $i/8.0$. Con lo cual al final de los pasos conseguimos en el registro $xmm11$ el valor empaquetado en doubleword's de sin_taylor para el indice $i/8.0$, (el cual es el mismo valor para todos los pixeles por pertenecer a la misma fila).
+
+	\item Una vez que obtuvimos los taylor's empaquetados para los indices de todos los pixeles que queremos procesar, lo siguiente es obtener el valor de $prof(i,j)$. Para esto, primero le multiplicamos a los registro $xmm12$,$xmm13$ donde estan empaquetados los taylor's de los indices $j/8.0$ el valor de $xmm1$, que es donde esta empaquetado el valor de $y_scale$, y le multiplicamos  a $xmm11$ el registro $xmm0$ ya que en este esta empaquetado el valor de $x_scale$. Una vez realisado esto, le sumamos a los registros $xmm12$,$xmm13$ el registro $xmm11$ y los dividimos por el registro $xmm4$ que es el que tiene el valor $2.0$ empaquetado en doubleword.
+
+	De esta menera queda guardado en los registros $xmm12$,$xmm13$ la funcion $Prof(i,j)$ de los indices de los pixeles que se estan procesando. En $xmm12$ estan los valores para los pixeles de las pisiciones $(i,j)$ hasta $(i,j+3)$ y en $xmm13$ estan los valores para los pixeles de las posiciones $(i,j+4)$ hasta $(i,j+7)$
+
+	\item El siguiente paso consiste en traer los valores de los pixeles de la memoria y desempaquetarlos guardando el valor en los registros $xmm14$ y $xmm15$ y (en $xmm14$ se guardan los primeros $4$ pixeles y en $xmm15$ el resto).
+
+	Teniendo estos valores hacemos la suma de $xmm12$ con $xmm14$ y $xmm13$ con $xmm15$ y tenemos el valor ya listo para ser empaquetado y guardado en el destino.
+
+	Teniendo en cuenta que este valor puede ser mayor a $255$ o menor a $0$ para empaquetar utilizamos la instrucción PACKUSDW que empaqueta saturando, dejando asi en $255$ todos aquellos valores mayores al mismo y en $0$ a los valores negativos.
+
+\end{itemize}
+
+\subsubsection{Comparación con el lenguaje C}
+
+Mirando el pseudocodigo del algoritmo en C vemos para empezar que la cantidad de iteraciones es 8 veces mayor en C que en assembler al utilizar SIMD. ya que mientras que en C se procesa de a un solo pixel por vez en assembler se procede a procesar 8.
+
+Otro aspecto a tener en cuenta es que en la implementación en assembler tenemor que obtener a partir de la posición del primer pixel los valores de los $j$'s para los otros $7$ pixeles que se van a procesar, si vien esto en C no hay que hacerlo, el costo de este paso del algoritmo esta esta compensado ya que al realizar 8 veces menos cantidad de iteraciones hay que avanzar ocho veces menos los contadores. Podemos concluir entonces que en ciertos casos, si vien paralelizar supone realizar algunos pasos extras, hay que ver si los mismos son compensados o no. pueden existir casos donde la cantidad de pasos extras a compensar sean demasiados y termine vajando la performance comparandolo con algoritmos comunes.
+
+Tambien podemos ver que en la version C cada vez que se llama a la funcion sin_taylor, se define el valor de $pi$ mientras que en la implementacion assembler el mismo ya esta predefinido antes de comenzar el ciclo, de la misma manera los valores $6$, $120$ y $5040$. esto mejora la performance, pero no se lo puede considerar como una mejora de SIMD ya que lo mismo podria ser facilmente aplicado en la version C del algoritmo.
+
+\underline{\textbf{Algunas consideraciones a tener en cuenta a la hora de comparar la versión C con assembler:}}
+Tengamos en cuenta para la comparación de ambas implementaciones que en C por cada pixel se hace la llamada a la funcion sin_taylor que como sabemos supone ciertos pasos para satisfacer la convencion C y pasarle los parametros a la misma, Esto lo convierten mas lento que si la misma funcion estuviera definida dentro del mismo algoritmo.
+
+También pasa que tanto en la implementación C como en la implementación assembler, podriamos mejorarlas calculando la funcion sin_taylor($i/8.0$) una sola vez por cada fila, de esta manera se reduce significativamente la llamada a la función, mejorando significaivamente la performanze. En este punto es importante ver que esta mejora es $8$ veces menos significatica para assembler que para C ya que en el mismo ya se procesan 8 pixeles por vez. Por lo que vemos que mismo en algoritmos ineficientes puede pasar que al paralelizar estemos obteniendo de por si un algoritmo mejorado del mismo sin siquiera saberlo.
+
+
