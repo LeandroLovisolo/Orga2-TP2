@@ -146,7 +146,7 @@ estos valores son:
 
   \item El segundo paso consiste en desempaquetar los datos utilizando la instrucción \asm{PUNPCKHBW} y \asm{PUNPCKLBW}. Obteniendo de esta manera el valor de los píxeles en words alojados en los registros \xmm{0}, \xmm{1} los de la fila actual y en \xmm{2}, \xmm{3} los de la siguiente fila.
 
-  Es importante destacar en este paso, que la parte baja del registro \xmm{0} es desempaquetada en el mismo registro, mientras que la parte alta se desempaqueta guardando el resultado en el registro \xmm{1}. lo mismo pasa con \xmm{2}, \xmm{3}, teniendo en cuenta que el valor del pixel es un entero sin signo, al desempaquetar completamos con ceros y seguimos teniendo la representación de el mismo número.
+  Es importante destacar en este paso, que la parte baja del registro \xmm{0} es desempaquetada en el mismo registro, mientras que la parte alta se desempaqueta guardando el resultado en el registro \xmm{1}. Lo mismo pasa con \xmm{2}, \xmm{3}, teniendo en cuenta que el valor del pixel es un entero sin signo, al desempaquetar completamos con ceros y seguimos teniendo la representación de el mismo número.
 
   \begin{figure}[H]
     \centering
