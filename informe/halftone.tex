@@ -92,14 +92,59 @@ estos valores son:
 \subsubsection{Descripción del ciclo:}
 
 \begin{itemize}
-	\item El primer paso realizado dentro de un ciclo es obtener los proximos $16$ pixeles de la fila actual de la imagen en el registro $xmm0$, y los $16$ pixeles correspondientes de la fila siguiente en el registro $xmm2$, para luego trabajar con $8$ bloques de $2x2$ a la misma vez. Ver figura %\ref{bloques}
+	\item El primer paso realizado dentro de un ciclo es obtener los proximos $16$ pixeles de la fila actual de la imagen en el registro $xmm0$, y los $16$ pixeles correspondientes de la fila siguiente en el registro $xmm2$, para luego trabajar con $8$ bloques de $2x2$ a la misma vez. Ver figura \ref{bloques}
 
-	%\begin{figure}[H]
-	%	\centering
-	%	\includegraphics[width=15cm]{halftone/bloques.png}
-	%	\caption{obtención de los bloques a procesar en la iteración actual.}
-	%	\label{bloques}
-	%\end{figure}
+	\begin{figure}[!ht]
+		\centering
+	    \begin{tikzpicture}[scale=0.75]
+	        \foreach \x in {0, ..., 15}
+	        {
+	            % Registros
+	            \filldraw[fill=gray]      (\x, 8) rectangle +(1, 1);
+	            \filldraw[fill=lightgray] (\x, 6) rectangle +(1, 1);            
+
+	            % Matriz
+	            \filldraw[fill=gray]      (\x, 4) rectangle +(1, 1);
+	            \filldraw[fill=lightgray] (\x, 3) rectangle +(1, 1);
+
+	            % Líneas de proyección inferiores
+	            \draw                     (\x, 2) rectangle +(1, 1);
+	            \draw [dotted] (\x, 1) -- +(0, 1) ++(1, 0) -- +(0, 1);
+	        }
+
+	        \foreach \x in {16, 17}
+	        {
+	            % Matriz
+	            \draw (\x, 4) rectangle +(1, 1);
+	            \draw (\x, 3) rectangle +(1, 1);
+	            \draw (\x, 2) rectangle +(1, 1);
+
+	            % Líneas de proyección inferiores
+	            \draw [dotted] (\x, 1) -- +(0, 1) ++(1, 0) -- +(0, 1);
+	        }
+
+	        \foreach \y in {2, ..., 5}
+	        {
+	            % Líneas de proyección laterales
+	            \draw [dotted] (18, \y) -- +(1, 0);
+	        }
+
+	        % Etiquetas de los registros
+	        \draw (16, 8.5) node[anchor=west]{\xmm{0}}
+	             +( 0,  -2) node[anchor=west]{\xmm{1}};
+
+	        % Etiqueta de la matriz
+	        \draw (14, 0.5) node[anchor=west]{Matriz de la imagen};
+	        \draw [->, thick] (14, 0.5) -- +(-1.5, 2);
+
+	        % Flechas entre registros
+	        \draw [->, thick] (-0.25, 3.5) -- ++(-1, 0)   -- ++(0, 3) -- +(1, 0);
+	        \draw [->, thick] (-0.25, 4.5) -- ++(-0.5, 0) -- ++(0, 4) -- +(0.5, 0);
+
+	    \end{tikzpicture}
+		\caption{Obtención de los bloques a procesar en la iteración actual.}
+		\label{bloques}
+	\end{figure}
 
 	\item El segundo paso consiste en desempaquetar los datos utilizando la instrucción PUNPCKHBW y PUNPCKLBW. Obteniendo de esta manera el valor de los pixeles en word's alojados en los registros $xmm0$,$xmm1$ los de la fila actual y en $xmm2$,$xmm3$ los de la siguiente fila.
 
@@ -112,26 +157,71 @@ estos valores son:
 	%	\label{PUNPCK}
 	%\end{figure}
 
-	\item El tercer paso del ciclo es sumar el valor de cada bloque de $2x2$. Para esto utilizamos $2$ instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros $xmm0$ y $xmm1$ las sumas parciales de los bloques. O de otra forma; siendo $(i,j)$ y $(i+1,j)$ la posiciones de la imagen desde donde se obtienen los proximos $32$ pixeles a procesar, lo que obtenemos en el word más bajo de $xmm0$ es la suma del pixel $(i,j)$ con el pixel $(i+1,j)$ y asi hasta el word más alto de $xmm1$ donde tenemos la suma entre el pixel $(i,j+15)$ con el pixel $(i+1,j+15)$. Ver figura %\ref{PADDW}
-
-	%\begin{figure}[H]
-	%	\centering
-	%	\includegraphics[width=15cm]{halftone/PADDW.png}
-	%	\caption{suma parcial de los bloques que se estan procesando.}
-	%	\label{PADDW}
-	%\end{figure}
-
+	\item El tercer paso del ciclo es sumar el valor de cada bloque de $2x2$. Para esto utilizamos $2$ instrucciones, PADDW y PHADDW. La primer instrucción es utilizada para sumar los valores de los pixeles de la fila actual con los valores de los pixeles correspondientes en la siguiente fila, obteniendo de esta manera en los registros $xmm0$ y $xmm1$ las sumas parciales de los bloques. O de otra forma; siendo $(i,j)$ y $(i+1,j)$ la posiciones de la imagen desde donde se obtienen los proximos $32$ pixeles a procesar, lo que obtenemos en el word más bajo de $xmm0$ es la suma del pixel $(i,j)$ con el pixel $(i+1,j)$ y asi hasta el word más alto de $xmm1$ donde tenemos la suma entre el pixel $(i,j+15)$ con el pixel $(i+1,j+15)$. Ver figura \ref{PHADDW}.
 
 	La segunda instrucción (PHADDW) es utilizada para obtener la suma total de cada uno de los bloques. Tomando como ejemplo el bloque compuesto por los pixeles $(i,j)$,$(i,j+1)$,$(i+1,j)$ y $(i+1,j+1)$, ya tenemos las sumas parciales de los mismos en el registro $xmm0$. Más precisamente, tenemos en el word mas bajo del registro la suma de los pixeles $(i,j)$ y $(i+1,j)$ y el el siguiente word mas bajo la suma de los pixeles $(i,j+1)$ y $(i+1,j+1)$, por lo que al sumar estos dos word que se encuentran de manera consecutiva en el registro $xmm0$, lo que obtenemos es la suma total del bloque. 
 
-	Dado que cada registro xmm tiene $8$ word y que para cada bloque las sumas parciales estan distribuidos en dos word consecutivos del mismo registro, la instrucción PHADD utilizando como operandos los registros $xmm0$ y $xmm1$ devuelven en el registro $xmm0$ efectivamente la suma total en cada word de cada uno de los $8$ bloques que se estan procesando en simultaneo. Ver figura %\ref{PHADDW}
+	Dado que cada registro xmm tiene $8$ word y que para cada bloque las sumas parciales estan distribuidos en dos word consecutivos del mismo registro, la instrucción PHADD utilizando como operandos los registros $xmm0$ y $xmm1$ devuelven en el registro $xmm0$ efectivamente la suma total en cada word de cada uno de los $8$ bloques que se estan procesando en simultaneo.
 
-	%\begin{figure}[H]
-	%	\centering
-	%	\includegraphics[width=15cm]{halftone/PHADDW.png}
-	%	\caption{suma total de los bloques que se estan procesando.}
-	%	\label{PHADDW}
-	%\end{figure}
+	\begin{figure}[H]
+		\centering
+		\begin{tikzpicture}[scale=0.75]
+			\draw (0,16) node[anchor=west]{Estado inicial de los registros:};
+
+			\registroOcho{\xmm{0}}{-1}{14}{Y16}{Y15}{Y14}{Y13}{Y12}{Y11}{Y10}{Y9}
+
+			\registroOcho{\xmm{1}}{1}{12}{Y8}{Y7}{Y6}{Y5}{Y4}{Y3}{Y2}{Y1}
+
+			\registroOcho{\xmm{2}}{-1}{10}{X16}{X15}{X14}{X13}{X12}{X11}{X10}{X9}
+
+			\registroOcho{\xmm{3}}{1}{8}{X8}{X7}{X6}{X5}{X4}{X3}{X2}{X1}
+
+			\draw (0,7) node[anchor=west]
+				{Luego de aplicar \asm{PADDW} \xmm{0}, \xmm{2} y
+				                  \asm{PADDW} \xmm{1}, \xmm{3}:};
+
+			\registroOcho{\xmm{0}}{-1}{5}
+				{\small{X16+Y16}}{\small{X15+Y15}}{\small{X14+Y14}}{\small{X13+Y13}}
+				{\small{X12+Y12}}{\small{X11+Y11}}{\small{X10+Y10}}{\small{X9+Y9}}
+
+			\registroOcho{\xmm{1}}{1}{3}
+				{\small{X8+Y8}}{\small{X7+Y7}}{\small{X6+Y6}}{\small{X5+Y5}}
+				{\small{X4+Y4}}{\small{X3+Y3}}{\small{X2+Y2}}{\small{X1+Y1}}			
+
+			\draw (0,2) node[anchor=west]
+				{Luego de aplicar \asm{PHADDW} \xmm{0}, \xmm{1}:};
+
+			\registroOcho{\xmm{0}}{0}{0}{}{}{}{}{}{}{}{}
+
+			\draw (1,  1) node[anchor=north]{\scriptsize{X16+Y16+}}
+			     +(0, -1) node[anchor=south]{\scriptsize{X15+Y15}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X14+Y14+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X13+Y13}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X12+Y12+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X11+Y11}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X10+Y10+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X9+Y9}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X8+Y8+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X7+Y7}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X6+Y6+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X5+Y5}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X4+Y4+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X3+Y3}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X2+Y2+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X1+Y1}};
+
+            % Flecha izquierda
+            \draw [->, thick] (-2.5, 14.5) -- ++(-0.5, 0) -- ++(0, -9) -- +(0.5, 0);
+            \draw [thick] (-3, 10.5) -- +(0.5, 0);
+
+            % Flecha derecha
+            \draw [->, thick] (17.5, 12.5) -- ++(0.5, 0) -- ++(0, -9) -- +(-0.5, 0);
+            \draw [thick] (18, 8.5) -- +(-0.5, 0);
+		\end{tikzpicture}
+
+		\caption{suma total de los bloques que se estan procesando.}
+		\label{PHADDW}
+	\end{figure}
 
 	\item El cuarto paso consiste en reemplazar cada bolque de $2x2$ por el bloque que le corresponda dependiendo de el valor obtenido en la suma total del mismo.
 
@@ -145,13 +235,6 @@ estos valores son:
 	Para entender bien la idea observemos primero lo siguiente:
 
 	Cada pixel de la imagen ocupa un byte, pero como arrancamos de la posición $0$ y siempre nos movemos una cantidad par de posiciones en cada iteración (en particular nos movemos de a $16$ pixeles), sabemos que en los registros donde guardaremos el resultado para mandar al destino, cada par contiguo de pixeles pertenese a un mismo bloque de $2x2$, dado que la suma total de cada bloque también está guardada en word's, y que dos pixeles contiguos ocupan un word, podemos ver que la suma de un bloque abarca a todos los pixeles del mismo. ver figura %\ref{masckBloques}
-
-	%\begin{figure}[H]
-	%	\centering
-	%	\includegraphics[width=15cm]{halftone/masckBloques.png}
-	%	\caption{relación entre el espacio ocupado por la suma total de un bloque y los pixeles del mismo en bytes.}
-	%	\label{masckBloques}
-	%\end{figure}
 
 	Luego, obtenemos la mascara resultante de comparar la suma total de los boques que se estan procesando con los valores $205$,$410$,$615$ y $820$. Esta mascara está en word's empaquetados, en los cuales hay unos o ceros dependiendo de si el word pertenece a un bloque cuya suma es mayor o menor que los valores con los que es comparado. 
 
@@ -177,6 +260,7 @@ Si nos ponemos a ver con un poco mas de detalles, para realizar la suma del bloq
 \subsubsection{Rendimiento}
 
 Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512.
+
 \begin{center}
     \begin{tabular}{|l|l|l|l|}
         \hline
