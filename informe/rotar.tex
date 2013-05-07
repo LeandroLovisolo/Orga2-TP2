@@ -31,9 +31,10 @@ El ciclo principal comienza poniendo en 0 mediante la instrucción \texttt{POR} 
 
 \subsubsection{Ciclo para obtención de posiciones}
 
-Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones $x$ e $y$ de cuatro píxeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro píxeles utilizando doubles, se mueve el contenido de estos registros a registros \texttt{XMM} dónde se los convierte, utilizando \texttt{CVTDQ2PD} y se los almacena en cuatro registros \texttt{XMM}, dos con los dos doubles más bajos y altos de las coordenadas $x$ y dos con los dos doubles más bajos y altos de las coordenadas $y$.
+Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones $x$ e $y$ de cuatro píxeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro píxeles utilizando doubles, se mueve el contenido de estos registros a registros XMM dónde se los convierte, utilizando \texttt{CVTDQ2PD} y se los almacena en cuatro registros XMM, dos con los dos doubles más bajos y altos de las coordenadas $x$ y dos con los dos doubles más bajos y altos de las coordenadas $y$.
 
-\begin{center}
+\begin{figure}[h!]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \draw (0, 5) node[anchor=west]{Posiciones $x$:};
         
@@ -43,9 +44,8 @@ Este ciclo interno se encarga de poner en dos registros temporales los valores d
 
         \registroCuatro{}{0}{0}{0}{0}{0}{0}
     \end{tikzpicture}
-\end{center}
-
-Ejemplo del estado de los registros \texttt{XMM} asignados para $x$ e $y$ en la primera iteración del ciclo principal
+    \caption{Estado de los registros XMM asignados para $x$ e $y$ en la primera iteración del ciclo principal}
+\end{figure}
 
 
 \subsubsection{Cálculo de u y v}
