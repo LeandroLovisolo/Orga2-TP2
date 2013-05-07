@@ -21,6 +21,7 @@
 % el espacio vacío en cada página.
 \raggedbottom
 
+
 %%%%%%%%%% Configuración de Fancyhdr - Inicio %%%%%%%%%%
 \pagestyle{fancy}
 \thispagestyle{fancy}
@@ -37,13 +38,86 @@
 }
 %%%%%%%%%% Configuración de Fancyhdr - Fin %%%%%%%%%%
 
+
 %%%%%%%%%% Configuración de Algorithmic - Inicio %%%%%%%%%%
+% Entorno propio para customizar la presentación del pseudocódigo
+\newenvironment{pseudocodigo}
+    {\vspace{0.5em} \begin{algorithmic}}
+    {\end{algorithmic} \vspace{0.5em}}
+
+% Alinear comentarios a la derecha
 \renewcommand{\algorithmiccomment}[1]{\hfill \{#1\}}
 %%%%%%%%%% Configuración de Algorithmic - Fin %%%%%%%%%%
+
+
+%%%%%%%%%% Macros de tikz - Inicio %%%%%%%%%%
+% Uso: \registroCuatro{etiqueta}{x}{y}{a4}{a3}{a2}{a1}
+\newcommand{\registroCuatro}[7]{
+    \ifthenelse{\equal{#1}{}}{}{
+        \draw (#2, {#3 + 0.5}) node[anchor=east]{#1};
+    }
+
+    \draw   (#2, #3) rectangle +(4, 1) +(2, 0.5) node{#4}
+          ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#5}
+          ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#6}
+          ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#7};            
+}
+
+% Uso: \registroDieciseis{etiqueta}{x}{y}{a16}{a15}{a14}...{a1}
+\newcommand{\registroDieciseis}[9]{
+    \def\etiqueta{#1}
+    \def\x{#2}
+    \def\y{#3}
+    \def\axvi{#4}
+    \def\axv{#5}
+    \def\axiv{#6}
+    \def\axiii{#7}
+    \def\axii{#8}
+    \def\axi{#9}
+    \registroDieciseisX
+}
+\newcommand{\registroDieciseisX}[9]{ % Auxiliar - no usar directamente
+    \def\ax{#1}
+    \def\aix{#2}
+    \def\aviii{#3}
+    \def\avii{#4}
+    \def\avi{#5}
+    \def\av{#6}
+    \def\aiv{#7}
+    \def\aiii{#8}
+    \def\aii{#9}
+    \registroDieciseisXX
+}
+\newcommand{\registroDieciseisXX}[1]{ % Auxiliar - no usar directamente
+    \def\ai{#1}
+    \ifthenelse{\equal{\etiqueta}{}}{}{
+        \draw (\x, {\y + 0.5}) node[anchor=east]{\etiqueta};
+    }
+    \filldraw[fill=white]
+        (\x, \y) rectangle +(1, 1) +(0.5, 0.5) node{\axvi}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\axv}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\axiv}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\axiii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\axii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\axi}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\ax}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\aix}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\aviii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\avii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\avi}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\av}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\aiv}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\aiii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\aii}
+        ++(1, 0) rectangle +(1, 1) +(0.5, 0.5) node{\ai};
+}
+%%%%%%%%%% Macros de tikz - Fin %%%%%%%%%%
+
 
 %%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
 \newcommand{\xmm}[1]{\texttt{XMM#1}}
 %%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
+
 
 \begin{document}
 
@@ -137,7 +211,7 @@ Lautaro José Petaccio 		& 443/11 & lausuper@gmail.com\\
 
 \subsection{Halftone}
 
-\input{halfotne}
+%\input{halftone}
 
 \subsection{Umbralizar}
 

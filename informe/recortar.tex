@@ -6,7 +6,7 @@ cuadrado en su posición opuesta respecto de la imagen original.
 
 Se ilustra a continuación el ciclo de la implementación C:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \FOR{$y = 1$ to $n$}
         \FOR{$x = 1$ to $n$}
             \STATE $dst[alto - n + y][ancho - n + x]$ $\leftarrow$ $src[y][x]$ \COMMENT{copio esquina superior izquierda}
@@ -15,7 +15,7 @@ Se ilustra a continuación el ciclo de la implementación C:
             \STATE $dst[y][x]$ $\leftarrow$ $src[alto - n + y][ancho - n + x]$ \COMMENT{copio esquina inferior derecha}
         \ENDFOR
     \ENDFOR
-\end{algorithmic}
+\end{pseudocodigo}
 
 La implementación assembler difiere de la anterior en cuanto a que se copia la imagen de a 16 bytes por vez,
 utilizando la instrucción \texttt{MOVDQU} para cargar 16 bytes de memoria contiguos en un registro XMM 
@@ -27,7 +27,7 @@ esta diferencia a $x$, de manera que el siguiente ciclo opere exactamente con lo
 
 El pseudocódigo a continuación describe el ciclo completo de la implementación assembler:
 
-\begin{algorithmic}
+\begin{pseudocodigo}
     \FOR{$y = 1$ to $n$}
         \FOR{$x = 1$ to $n$}
             \IF{$|n - x| < 16$}
@@ -38,7 +38,7 @@ El pseudocódigo a continuación describe el ciclo completo de la implementació
             \STATE idem demás esquinas
         \ENDFOR
     \ENDFOR
-\end{algorithmic}
+\end{pseudocodigo}
 
 \subsubsection{Rendimiento}
 
