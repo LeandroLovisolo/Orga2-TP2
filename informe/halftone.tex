@@ -258,7 +258,7 @@ estos valores son:
 	Estas mascaras dejan los valores ya seteados en bytes, por lo que luego no hay que empaquetarlos.
 	Para entender bien la idea observemos primero lo siguiente:
 
-	Cada pixel de la imagen ocupa un byte, pero como arrancamos de la posición $0$ y siempre nos movemos una cantidad par de posiciones en cada iteración (en particular nos movemos de a $16$ pixeles), sabemos que en los registros donde guardaremos el resultado para mandar al destino, cada par contiguo de pixeles pertenese a un mismo bloque de $2x2$, dado que la suma total de cada bloque también está guardada en word's, y que dos pixeles contiguos ocupan un word, podemos ver que la suma de un bloque abarca a todos los pixeles del mismo. ver figura %\ref{masckBloques}
+	Cada pixel de la imagen ocupa un byte, pero como arrancamos de la posición $0$ y siempre nos movemos una cantidad par de posiciones en cada iteración (en particular nos movemos de a $16$ pixeles), sabemos que en los registros donde guardaremos el resultado para mandar al destino, cada par contiguo de pixeles pertenese a un mismo bloque de $2x2$, dado que la suma total de cada bloque también está guardada en word's, y que dos pixeles contiguos ocupan un word, podemos ver que la suma de un bloque abarca a todos los pixeles del mismo.
 
 	Luego, obtenemos la mascara resultante de comparar la suma total de los boques que se estan procesando con los valores $205$,$410$,$615$ y $820$. Esta mascara está en word's empaquetados, en los cuales hay unos o ceros dependiendo de si el word pertenece a un bloque cuya suma es mayor o menor que los valores con los que es comparado. 
 
