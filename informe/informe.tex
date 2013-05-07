@@ -1,6 +1,6 @@
 \documentclass[a4paper,10pt,twoside]{article}
 
-\usepackage{a4wide}
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[spanish,es-ucroman,es-noquoting]{babel}
 \usepackage{setspace}
@@ -63,6 +63,7 @@
           ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#7};          
 }
 
+% Uso: \registroOcho{etiqueta}{x}{y}{a8}{a7}{a6}...{a1}
 \newcommand{\registroOcho}[9]{
     \def\etiqueta{#1}
     \def\x{#2}
@@ -75,7 +76,7 @@
     \def\aiii{#9}
     \registroOchoX    
 }
-\newcommand{\registroOchoX}[2]{
+\newcommand{\registroOchoX}[2]{ % Auxiliar - no usar directamente
     \def\aii{#1}
     \def\ai{#2}
     \ifthenelse{\equal{\etiqueta}{}}{}{
