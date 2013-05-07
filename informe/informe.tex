@@ -280,7 +280,57 @@ En la siguiente sección analizamos cada una de las implementaciones y describim
 
 \section{Resultados}
 
-Pendiente.
+Resumimos a continuación las mejoras de rendimiento obtenidas al aplicar instrucciones SIMD. El gráfico que sigue presenta el porcentaje del tiempo de ejecución de las implementaciones assembler respecto de las implementaciones C. Cuanto más pequeña sea la barra, mayor es la mejora de rendimiento obtenida.
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[>=stealth]
+        % Porcentajes
+        \def\recortar  {6.43}
+        \def\halftone  {6.64}
+        \def\umbralizar{8.92}
+        \def\colorizar {2.28}
+        \def\plasma    {2.35}
+        \def\rotar     {41.17}
+
+        \def\escala    {0.2}
+
+        % Recortar
+        \filldraw[fill=gray] (1,    0) rectangle ++(1, {\recortar * \escala});
+        \draw                (1.5,  0) node[anchor=north]{Recortar};
+        \draw                (1.5, {\recortar * \escala}) node[anchor=south]{\recortar\%};
+
+        % Halftone
+        \filldraw[fill=gray] (3,    0) rectangle +(1, {\halftone * \escala});
+        \draw                (3.5,  0) node[anchor=north]{Halftone};
+        \draw                (3.5, {\halftone * \escala}) node[anchor=south]{\halftone\%};
+
+        % Umbralizar
+        \filldraw[fill=gray] (5,    0) rectangle +(1, {\umbralizar * \escala});
+        \draw                (5.5,  0) node[anchor=north]{Umbralizar};
+        \draw                (5.5, {\umbralizar * \escala}) node[anchor=south]{\umbralizar\%};
+
+        % Colorizar
+        \filldraw[fill=gray] (7,    0) rectangle +(1, {\colorizar * \escala});
+        \draw                (7.5,  0) node[anchor=north]{Colorizar};
+        \draw                (7.5, {\colorizar * \escala}) node[anchor=south]{\colorizar\%};
+
+        % Plasma
+        \filldraw[fill=gray] (9,    0) rectangle +(1, {\plasma * \escala});
+        \draw                (9.5,  0) node[anchor=north]{Plasma};
+        \draw                (9.5, {\plasma * \escala}) node[anchor=south]{\plasma\%};
+
+        % Rotar
+        \filldraw[fill=gray] (11,   0) rectangle +(1, {\rotar * \escala});
+        \draw                (11.5, 0) node[anchor=north]{Rotar};
+        \draw                (11.5, {\rotar * \escala}) node[anchor=south]{\rotar\%};   
+
+        % Ejes
+        \draw [->] (0, 0) -- +(0,  10);
+        \draw      (0, 0) -- +(13, 0);
+    \end{tikzpicture}
+    \caption{Tiempo de ejecución de las implementaciones assembler respecto a C.}
+\end{figure}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
