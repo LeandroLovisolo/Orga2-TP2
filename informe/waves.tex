@@ -3,10 +3,10 @@ Este filtro combina la imagen original con una imagen de ondas, dando tonos más
 Veamos a continuación el ciclo de la implementación C:
 
 \begin{pseudocodigo}
-   \FOR{$j = 1$ to $ancho$}
-    \FOR{$i = 1$ to $alto$}
+  \FOR{$i = 1$ to $alto$}
+    \FOR{$j = 1$ to $ancho$}
       \STATE $prof$ $\leftarrow$ $(x_{scale} * sin\_taylor(i/8.0) + y_{scale} * sin\_taylor(j/8.0) )/2$ 
-      \STATE $newValue$ $\leftarrow$ $prof * g_{scale} + src[j][i]$ 
+      \STATE $newValue$ $\leftarrow$ $prof * g_{scale} + src[i][j]$ 
       \IF{$newValue > 255$}
         \STATE $newValue$ $\leftarrow$ $255$
       \ELSE 
@@ -14,7 +14,7 @@ Veamos a continuación el ciclo de la implementación C:
           \STATE $newValue$ $\leftarrow$ $0$
         \ENDIF 
       \ENDIF
-      \STATE $dst[j][i] = \lfloor newValue \rfloor$ 
+      \STATE $dst[i][j] = \lfloor newValue \rfloor$ 
     \ENDFOR
   \ENDFOR
 \end{pseudocodigo}
