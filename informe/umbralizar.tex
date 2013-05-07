@@ -35,12 +35,6 @@ Se leen 16 bytes contiguos desde la imagen fuente en el registro xmm1 utilizando
 
 Queriendo explotar al máximo las instrucciones SIMD, tratando de procesar en simultaneo 16 bytes, encontramos que esto no era posible debido a que el set de instrucciones no contempla comparaciones de greater, lower o derivadas para bytes sin signo (necesario ya que los pixeles en grayscale van del 0 al 255), por lo que fue necesario extender los bytes mediante un desempaquetado, convirtiendolos en words, para luego hacer las comparaciones correspondientes.
 
-\begin{figure}[H]
-\centering
-\includegraphics[width=90mm]{unpackxmm1.png}
-\caption{Desempaquetado de los bytes a words para realizar comparaciones}
-\label{overflow}
-\end{figure}
 Se desempaquetan los 16 bytes en parte baja (primeros 8 bytes) y en parte alta convirtiendolos a words por medio de la instrucción punpcklbw.
 
 \begin{center}
@@ -65,14 +59,6 @@ Se desempaquetan los 16 bytes en parte baja (primeros 8 bytes) y en parte alta c
 \end{center}
 
 Se buscan los números que superen al máximo comparando la parte alta y baja con el registro xmm5 preparado al inicio del programa, el cuál contiene el máximo en words empaquetadas. Utilizando pcmpgtw tanto en la parte baja como la alta, obtenemos una máscara que contiene en 0xFFFF las words mayores al máximo y en 0x0000 las demás. Empaquetamos, utilizando la instrucción packsswb, la máscara relacionada a la parte baja y a la alta, dejando en 255 sólo los bytes que sean mayores al máximo para luego sumarlos en el acumulador utilizando paddusb.
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=150mm, height=40mm]{cpmmax.png}
-\caption{Ejemplo de creación de máscara y empaquetado de la misma. El registro xmm3 es la copia de xmm1 que guardará la parte baja de la máscara, xmm4 realiza lo mismo con la parte alta.}
-\label{overflow}
-\end{figure}
-
 
 \begin{center}
   \begin{tikzpicture}[scale=0.75]
@@ -125,13 +111,6 @@ Al ser necesaria un división y un truncamiento para el caso, se utilizaron sing
 Fue necesario desempaquetar aún más los pixeles, utilizando punpcklwd, para poder obtener los valores de estos en double words, y poder convertirlos a single precision floats mediante la instrucción cvtdq2ps. Esta es precisión suficiente para los cálculos y además brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
 
 Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide, utilizando divps, por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca utilizando cvttps2dq, para realizar la función floor ($\lfloor \rfloor$) convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando, utilizando mulps, por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar, utilizando la instrucción packusdw, obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetado inicial (xmm2).
-
-\begin{figure}[H]
-\centering
-\includegraphics[width=150mm, height=85mm]{calcq.png}
-\caption{Ejemplo del cálculo de la parte baja de los nuevos valores para los pixeles que entran en el caso ($min \leq pixel \leq max$), el mismo procedimiento se realiza con la parte alta y se empaquetan ambos resultados}
-\label{overflow}
-\end{figure}
 
 Al finalizar, se empaquetan los dos registros resultantes, mediante packuswb, para luego poder aplicarle la máscara anteriormente creada para el caso utilizando un pand y sumar simultaneamente con paddusb el valor obtenido al acumulador, dejando el valor correspondiente en los pixeles que cumplían con el caso.
 
