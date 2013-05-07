@@ -2,7 +2,7 @@ El filtro rotar consiste en rotar los píxeles de la imagen 45 grados en sentido
 
 Rotar es el filtro que menos se presta para la paralelización. Esta dificultad proviene de la imposibilidad de leer bytes y procesarlos simultáneamente debido a que el valor de cada pixel en la imagen destino se obtiene calculando, según su posición, qué pixel corresponde de la imagen fuente, lo que implica traer uno a uno los píxeles de la imagen fuente para colocarlos en en lugar indicado en la imágen destino.
 
-Analizando el algoritmo, llegamos a la conclusión de que la mejor manera de explotar la simultaneidad que nos brinda las instrucciones SIMD, es utilizarlas para calcular las posiciones de dónde sacar el pixel para colocarlo en la imagen destino. 
+Analizando el algoritmo, llegamos a la conclusión de que la mejor manera de explotar la simultaneidad que nos brindan las instrucciones SIMD, es utilizarlas para calcular las posiciones de dónde sacar el pixel para colocarlo en la imagen destino. 
 
 Inicialmente este proceso fue realizado utilizando single precision floats para poder aprovechar SIMD al máximo y realizar cálculos para conseguir las posiciones de donde sacar los píxeles a la vez. Este intento se vió frustrado al correr el filtro y compararlo contra las imágenes provistas por la cátedra. Si bien la imagen coincidía visualmente, se encontraron errores en 27 píxeles. Un análisis de estos píxeles pusieron en evidencia un problema de precisión, el cual se intentó arreglar utilizando la instrucción roundps sin conseguir mejores resultados. Se solucionó el problema realizando los cálculos usando double precision floats con SIMD para luego convertirlos a floats y finalmente convertirlos a enteros para poder funcionar como posición.
 
