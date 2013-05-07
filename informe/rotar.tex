@@ -17,75 +17,68 @@ El filtro se divide en cinco etapas:
 \end{enumerate}
 
 \subsubsection{Pre-ciclo principal}
-Para optimizar la implementación, se realiza el cálculo de cx, cy y $\sqrt[2]{2}/2$ al inicio del programa. Estos valores se almacenan en registros como doubles empaquetados utilizando shufps para tener cáda valor en double words y luego convertirlos a doubles con cvtdq2pd.
+Para optimizar la implementación, se realiza el cálculo de cx, cy y $\sqrt[2]{2}/2$ al inicio del programa. Estos valores se almacenan en registros como doubles empaquetados utilizando \texttt{SHUFPS} para tener cáda valor en double words y luego convertirlos a doubles con \texttt{CVTDQ2PD}.
 
-También se ponen en 0 los registros r11 y r15 que servirán para establecer en que posición x e y respectivamente se encuentra en la imagen.
+También se ponen en 0 los registros \reg{11} y \reg{15} que servirán para establecer en que posición x e y respectivamente se encuentra en la imagen.
 
-El ciclo principal comienza poniendo en 0 mediante la instrucción por el registro xmm7 el cuál se encargará de acumular los pixeles hasta llenarse sus 16 bytes.
+El ciclo principal comienza poniendo en 0 mediante la instrucción \texttt{POR} el registro \xmm{7} el cuál se encargará de acumular los pixeles hasta llenarse sus 16 bytes.
 
 \subsubsection{Ciclo para obtención de posiciones}
-Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones x e y de cuatro pixeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro pixeles utilizando doubles, se mueve el contenido de estos registros a registros xmm dónde se los convierte, utilizando cvtdq2pd y se los almacena en cuatro registros xmm, dos con los dos doubles más bajos y altos de las coordenadas x y dos con los dos doubles más bajos y altos de las coordenadas y.
+Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones x e y de cuatro pixeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro pixeles utilizando doubles, se mueve el contenido de estos registros a registros \texttt{XMM} dónde se los convierte, utilizando \texttt{CVTDQ2PD} y se los almacena en cuatro registros \texttt{XMM}, dos con los dos doubles más bajos y altos de las coordenadas x y dos con los dos doubles más bajos y altos de las coordenadas y.
 
-IMAGEN!
+\begin{center}
+    \begin{tikzpicture}[scale=0.75]
+        \draw (0, 5) node[anchor=west]{Posiciones $x$:};
+        
+        \registroCuatro{}{0}{3}{0}{1}{2}{3}
+
+        \draw (0, 2) node[anchor=west]{Posiciones $y$:};
+
+        \registroCuatro{}{0}{0}{0}{0}{0}{0}
+    \end{tikzpicture}
+\end{center}
+Ejemplo del estado de los registros \texttt{XMM} asignados para x e y en la primera iteración del ciclo principal
 
 \subsubsection{Cálculo de u y v}
 Se opera sobre los doubles utilizando instrucciones SIMD, obteniedo los valores u y v, es decir, los valores x e y respectivamente de dónde conseguir el pixel a poner en la imágen fuente.
 
 Haciendo un análisis de las ecuaciones, decidimos realizar los cálculos de u y v de la siguiente manera:
 \begin{itemize}
-\item Dividir y calcular u como u1 y u2: u1 = cx + (sqrt(2)/2)*(x-cx) y u2 = -(sqrt(2)/2)*(y-cy)
-\item Dividir y calcular v como v1 y v2: v1 = cy + (sqrt(2)/2)*(x-cx) y v2 = +(sqrt(2)/2)*(y-cy)
+\item Dividir y calcular u como u1 y u2: u1 = cx + ($\sqrt[2]{2}/2$)*(x-cx) y u2 = -($\sqrt[2]{2}/2$)*(y-cy)
+\item Dividir y calcular v como v1 y v2: v1 = cy + ($\sqrt[2]{2}/2$)*(x-cx) y v2 = +($\sqrt[2]{2}/2$)*(y-cy)
 \end{itemize}
 
-De esta manera se puede calcular con instrucciones SIMD, utilizando subpd, (x-cx), multiplicandolo después con mulpd por (sqrt(2)/2) y utilizando luego este resultado para formar v1 y u1 con la suma de cy y cx respectivamente. Por último calcular u2 y v2, (sqrt(2)/2)*(y-cy), de manera similar, restándolo a u1 y sumándolo a v1.
+De esta manera se puede calcular con instrucciones SIMD, utilizando \texttt{SUBPD}, (x-cx), multiplicandolo después con \texttt{MULPD} por ($\sqrt[2]{2}/2$) y utilizando luego este resultado para formar v1 y u1 con la suma de cy y cx respectivamente. Por último calcular u2 y v2, ($\sqrt[2]{2}/2$)*(y-cy), de manera similar, restándolo a u1 y sumándolo a v1.
 
-Al finalizar el cálculo se convierten de doubles a floats utilizando cvtpd2ps, de floats a enteros con cvttps2dq y se shiftean hacia la izquierda los registros con las partes altas de x y de y (ahora u y v), mediante pslldq, para luego agregarles en la parte baja los valores de las partes bajas calculados utilizando la instrucción por, dejando 4 double words packed con u's y 4 double words packed con v's.
+Al finalizar el cálculo se convierten de doubles a floats utilizando \texttt{CVTPD2PS}, de floats a enteros con \texttt{CVTTPS2DQ} y se shiftean hacia la izquierda los registros con las partes altas de x y de y (ahora u y v), mediante \texttt{PSLLQD}, para luego agregarles en la parte baja los valores de las partes bajas calculados utilizando la instrucción \texttt{POR}, dejando 4 double words packed con u's y 4 double words packed con v's.
 
 \subsubsection{Ciclo de almacenamiento de los valores correspondientes a las posiciones procesadas}
-Antes de empezar este ciclo, se pone el registro rbp en 0 mediante un xor ya que servirá como acumulador temporal del ciclo.
+Antes de empezar este ciclo, se pone el registro \rbp en 0 mediante un \texttt{XOR} ya que servirá como acumulador temporal del ciclo.
 
-Se pasa a un pequeño ciclo el cuál mediante movd y pslldq (que realiza un shift a la izquierda) saca de los registros las double words calculadas en el paso anterior con las u's y v's y checkea de a una las restricciones del cálculo para u y v, para luego colocar en el caso de que las cumplan, en el acumulador del ciclo, el valor del pixel que tenga en la posición en la imagen fuente (el cuál es leido desde esta) y si no, un 0.
+Se pasa a un pequeño ciclo el cuál mediante \texttt{MOVD} y \texttt{PSLLDQ} (que realiza un shift a la izquierda) saca de los registros las double words calculadas en el paso anterior con las u's y v's y checkea de a una las restricciones del cálculo para u y v, para luego colocar en el caso de que las cumplan, en el acumulador del ciclo, el valor del pixel que tenga en la posición en la imagen fuente (el cuál es leido desde esta) y si no, un 0.
 
-Terminado el ciclo de almacenamiento, se agregan los valores de estos 4 bytes al acumulador principal creado al comienzo del ciclo, utilizando pslldq para shiftearlo a la izquierda 4 bytes y agregando los valores mediante un por y se vuelve a ciclar realizando el mismo proceso hasta llenar el acumulador con los valores correspondientes de los 16 bytes o 16 pixeles contiguos.
+Terminado el ciclo de almacenamiento, se agregan los valores de estos 4 bytes al acumulador principal creado al comienzo del ciclo, utilizando \texttt{PSLLDQ} para shiftearlo a la izquierda 4 bytes y agregando los valores mediante un por y se vuelve a ciclar realizando el mismo proceso hasta llenar el acumulador con los valores correspondientes de los 16 bytes o 16 pixeles contiguos.
 
 \subsubsection{Escritura de los pixeles en la imagen destino y fin del ciclo principal}
 
 En el final de cada iteración del ciclo princiapl, se checkea la posición de la imagen en la que se está (por si ya se ha terminado de recorrerla o se es necesario correr para atrás para agarrar 16 pixeles exactos) y si se ha llenado el acumulador. Si el acumulador se llena (habiendo pasado 4 ciclos) se escriben los 16 bytes a la imagen destino. Este mecanismo en el cuál se van almacenando los pixeles tiene como sentido economizar la escritura de datos.
 
 \subsubsection{Comparación con la implementación C}
-Cómo el algoritmo no es muy paralelizable, ambas implementaciones comparten acciones cómo la comparacion individual y la lectura en memoria de cada pixel. Sin embargo, se diferencian a hora de calcular las posiciones dónde están los valores de los pixeles a poner en la imagen destino, que se realizan utilizando instrucciones SIMD de a 2 doubles en simultaneo contra las operaciones secuenciales que realiza el lenguaje en C. También, la escritura a memoria se hace de a 16 bytes por el lado del programa en ensamblador contra la versión en C, ahorrando ciclos.
+Cómo el algoritmo no es muy paralelizable, ambas implementaciones comparten varias características pero difieren en algunos casos, a continuación se detalla.
 
-Decompilando la versión de rotar en c utilizando objdump -d -M intel -S rotar\_c.o obtuvimos el código ensamblador armado por gcc.
+Operaciones realizadas en la implementación en C para 16 bytes:
+\begin{itemize}
+\item Se realizan 2x16 accesos a memoria, 16 para la lectura de un pixel determinado en la imágen fuente y otros 16 para la escritura en la imágen destino.
+\item Se realiza el cálculo relacionado a u y v de manera secuencial.
+\item Se realiza el checkeo de las restricciones para u y v de manera secuencial.
+\end{itemize}
 
-
-Un análisis sobre cómo opera el lenguaje C compilado con gcc nos muestra cómo las operaciones de punto flotante se realizan algunas en doubles y otras en floats y se las convierte luego a float (ya que se almacenaban en floats en la implementación en c), estas pueden verse en la figura 5.
-
-\begin{verbatim}
-u = cx + sqrt(2)/2.0 * (x - cx) - sqrt(2)/2.0 * (y - cy); //con u float
-movss  xmm1,DWORD PTR [rbp-0x40] ;Mueve el float cx a xmm1
-cvtps2pd xmm1,xmm1 ;Convierte de single a double
-cvtsi2ss xmm0,DWORD PTR [rbp-0x44] ;Convierto entero a float
-subss  xmm0,DWORD PTR [rbp-0x40] ;Resto single float
-unpcklps xmm0,xmm0 ;Desempaqueto y interlazo floats
-cvtps2pd xmm0,xmm0 ;Convierte de single float a doubles
-movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
-mulsd  xmm0,xmm2 ;Muevo double
-addsd  xmm0,xmm1 ;Sumo double
-cvtsi2ss xmm1,DWORD PTR [rbp-0x48] ;Convierto entero a float
-subss  xmm1,DWORD PTR [rbp-0x3c] ;Resto single float
-unpcklps xmm1,xmm1 ;Desempaqueto y interlazo floats
-cvtps2pd xmm1,xmm1 ;Convierte de single a double
-movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
-mulsd  xmm1,xmm2 ;Multiplicacion de doubles
-subsd  xmm0,xmm1 ;Resta de doubles
-unpcklpd xmm0,xmm0 ;Desempaqueto y interlazo floats
-cvtpd2ps xmm0,xmm0 ;Convierto de double a single para guardarlo
-movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
-\end{verbatim}
-
-Figura 5: Código ensamblador generado por gcc en el cálculo de u \\
-
-Es también notable como el lenguaje ensamblador nos permite acomodar las operaciones para realizar cálculos de la manera más optima posible, en especial utilizando SIMD para ahorrar ciclos.
+Operaciones realizadas en la implementación en ASM para 16 bytes:
+\begin{itemize}
+\item Se realizan 16 accesos a memoria para la lectura de un pixel determinado en la imágen fuente y 1 acceso utilizando movqdu para la escritura en la imágen destino.
+\item Se realiza el cálculo relacionado a u y v utilizando instrucciones SIMD pudiendo realizar los cálculos con 2 datos simultáneos realizando en cáda ciclo 4 cálculos de u y v y en cada ciclo principal el cálculo de los 16 bytes.
+\item Se realiza el checkeo de las restricciones para u y v de manera secuencial.
+\end{itemize}
 
 \subsubsection{Rendimiento}
 Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512.
@@ -99,3 +92,7 @@ Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 
         \hline
     \end{tabular}
 \end{center}
+
+Es notable la diferencia en velocidad con los otros filtros. Este resultado pone en evidencia que al poder paralelizarse en menor manera que otros filtros, la velocidad y los ciclos aumentan considerablemente.
+
+Cabe destacar que la diferencia de velocidad obtenida en comparación con la implementación en C no sólo proviene de el uso de instrucciones SIMD para el cálculo con doubles o el acceso a memoria usando movqdu, si no que también influyen el uso contínuo de registros en vez de accesos memoría para almacenar datos (algo que C hace) y la posibilidad que otorga el lenguaje ensamblador de ordenar el código para poder optimizar al máximo los algoritmos.

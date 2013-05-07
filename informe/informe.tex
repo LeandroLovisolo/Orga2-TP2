@@ -3,7 +3,6 @@
 \usepackage{a4wide}
 \usepackage[utf8]{inputenc}
 \usepackage[spanish,es-ucroman,es-noquoting]{babel}
-%\usepackage[english]{babel}
 \usepackage{setspace}
 \usepackage{fancyhdr}
 \usepackage{lastpage}
@@ -15,7 +14,6 @@
 \usepackage{tikz}
 \usetikzlibrary{calc}
 \usetikzlibrary{decorations.pathreplacing}
-
 
 
 % Evita que el documento se estire verticalmente para ocupar
@@ -117,6 +115,14 @@
 
 %%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
 \newcommand{\xmm}[1]{\texttt{XMM#1}}
+\newcommand{\rax}{\texttt{RAX}}
+\newcommand{\rbx}{\texttt{RBX}}
+\newcommand{\rcx}{\texttt{RCX}}
+\newcommand{\rdx}{\texttt{RDX}}
+\newcommand{\rbp}{\texttt{RBP}}
+\newcommand{\rsp}{\texttt{RSP}}
+\newcommand{\reg}[1]{\texttt{R#1}}
+\newcommand{\asm}[1]{\texttt{\uppercase{#1}}}
 %%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
 
 
@@ -196,7 +202,11 @@ Lautaro José Petaccio 		& 443/11 & lausuper@gmail.com\\
 
 \section{Introducción}
 
-Pendiente.
+El objetivo de este trabajo es experimentar con el set de instrucciones SIMD de la arquitectura IA-32 de Intel. 
+
+Con este propósito, implementamos una serie de filtros gráficos que operan sobre imágenes RGB y en escala de grises. Para cada filtro escribimos una implementación de referencia en lenguaje C, sin ningún tipo de optimización, y otra implementación en lenguaje assembler haciendo uso de las instrucciones SIMD siempre que fuera posible. Finalmente, evaluamos el rendimiento de ambas implementaciones de cada filtro, y discutimos las mejoras observadas.
+
+En la siguiente sección analizamos cada una de las implementaciones y describimos en detalle las instrucciones SIMD usadas en cada caso.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
