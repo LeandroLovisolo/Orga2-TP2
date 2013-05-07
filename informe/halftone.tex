@@ -193,44 +193,30 @@ estos valores son:
 
 			\registroOcho{\xmm{0}}{0}{0}{}{}{}{}{}{}{}{}
 
-			\draw (0,  1) node[anchor=north west]{\scriptsize{X16+Y16+}}
-			     +(0, -1) node[anchor=south west]{\scriptsize{X15+Y15}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X14+Y14+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X13+Y13}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X12+Y12+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X11+Y11}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X10+Y10+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X9+Y9}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X8+Y8+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X7+Y7}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X6+Y6+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X5+Y5}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X4+Y4+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X3+Y3}}
-                ++(2,  0) node[anchor=north west]{\scriptsize{X2+Y2+}}
-                 +(0, -1) node[anchor=south west]{\scriptsize{X1+Y1}};
+			\draw (1,  1) node[anchor=north]{\scriptsize{X16+Y16+}}
+			     +(0, -1) node[anchor=south]{\scriptsize{X15+Y15}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X14+Y14+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X13+Y13}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X12+Y12+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X11+Y11}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X10+Y10+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X9+Y9}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X8+Y8+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X7+Y7}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X6+Y6+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X5+Y5}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X4+Y4+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X3+Y3}}
+                ++(2,  0) node[anchor=north]{\scriptsize{X2+Y2+}}
+                 +(0, -1) node[anchor=south]{\scriptsize{X1+Y1}};
 
+            % Flecha izquierda
+            \draw [->, thick] (-2.5, 14.5) -- ++(-0.5, 0) -- ++(0, -9) -- +(0.5, 0);
+            \draw [thick] (-3, 10.5) -- +(0.5, 0);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            % Flecha derecha
+            \draw [->, thick] (17.5, 12.5) -- ++(0.5, 0) -- ++(0, -9) -- +(-0.5, 0);
+            \draw [thick] (18, 8.5) -- +(-0.5, 0);
 		\end{tikzpicture}
 
 		\caption{suma total de los bloques que se estan procesando.}
