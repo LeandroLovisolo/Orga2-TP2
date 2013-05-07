@@ -45,28 +45,18 @@ Se desempaquetan los 16 bytes en parte baja (primeros 8 bytes) y en parte alta c
 
 \begin{center}
   \begin{tikzpicture}[scale=0.75]
-    \registroDieciseis{\xmm{1}}{0}{4}
+    \registroDieciseis{\xmm{1}}{0}{6}
                       {A15}{A14}{A13}{A12}{A11}{A10}{A9}{A8}{A7}
                       {A6}{A5}{A4}{A3}{A2}{A1}{A0}
 
-    \draw [->, thick] (15.5, 4) -- (15.5, 3); % A0
-    \draw [->, thick] (14.5, 4) -- (13.5, 3); % A1
-    \draw [->, thick] (13.5, 4) -- (11.5, 3); % A2
-    \draw [->, thick] (12.5, 4) -- ( 9.5, 3); % A3
-    \draw [->, thick] (11.5, 4) -- ( 7.5, 3); % A4
-    \draw [->, thick] (10.5, 4) -- ( 5.5, 3); % A5
-    \draw [->, thick] ( 9.5, 4) -- ( 3.5, 3); % A6
-    \draw [->, thick] ( 8.5, 4) -- ( 1.5, 3); % A7
-    \draw [->, thick] ( 7.5, 4) -- (15.5, 1); % A8
-    \draw [->, thick] ( 6.5, 4) -- (13.5, 1); % A9
-    \draw [->, thick] ( 5.5, 4) -- (11.5, 1); % A10
-    \draw [->, thick] ( 4.5, 4) -- ( 9.5, 1); % A11
-    \draw [->, thick] ( 3.5, 4) -- ( 7.5, 1); % A12
-    \draw [->, thick] ( 2.5, 4) -- ( 5.5, 1); % A13
-    \draw [->, thick] ( 1.5, 4) -- ( 3.5, 1); % A14
-    \draw [->, thick] ( 0.5, 4) -- ( 1.5, 1); % A15   
+    \draw [decoration={brace,amplitude=0.25cm},decorate, thick] ( 7.75, 5.75) -- (0.25, 5.75);
+    \draw [decoration={brace,amplitude=0.25cm},decorate, thick] (15.75, 5.75) -- (8.25, 5.75);
 
-    \registroDieciseis{\xmm{1}}{0}{2}
+    \draw [->, thick] (12, 5.5)  --  +(0, -1.25);
+    \draw [->, thick] (4, 5.5)   -- ++(0, -0.75) -- ++(-6, 0) --
+                    ++(0, -2.75) -- ++(6, 0)     --  +(0, -0.75);
+
+    \registroDieciseis{\xmm{1}}{0}{3}
                       {0}{A7}{0}{A6}{0}{A5}{0}{A4}{0}{A3}{0}{A2}{0}{A1}{0}{A0}
 
     \registroDieciseis{\xmm{2}}{0}{0}
@@ -82,6 +72,8 @@ Se buscan los números que superen al máximo comparando la parte alta y baja co
 \caption{Ejemplo de creación de máscara y empaquetado de la misma. El registro xmm3 es la copia de xmm1 que guardará la parte baja de la máscara, xmm4 realiza lo mismo con la parte alta.}
 \label{overflow}
 \end{figure}
+
+
 
 \subsubsection{Creación de la máscara para los pixeles ($min \leq pixel \leq max$)}
 Al utilizar un acumulador incialmente en 0 se pudo ahorrar el paso de comparar los pixeles menores al mínimo ya que los pixeles que cumplieran esta propiedad tendrían 0 como valor.
