@@ -26,7 +26,18 @@ El ciclo principal comienza poniendo en 0 mediante la instrucción por el regist
 \subsubsection{Ciclo para obtención de posiciones}
 Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones x e y de cuatro pixeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro pixeles utilizando doubles, se mueve el contenido de estos registros a registros xmm dónde se los convierte, utilizando cvtdq2pd y se los almacena en cuatro registros xmm, dos con los dos doubles más bajos y altos de las coordenadas x y dos con los dos doubles más bajos y altos de las coordenadas y.
 
-IMAGEN!
+\begin{center}
+    \begin{tikzpicture}[scale=0.75]
+        \draw (0, 5) node[anchor=west]{Posiciones $x$:};
+        
+        \registroCuatro{}{0}{3}{0}{1}{2}{3}
+
+        \draw (0, 2) node[anchor=west]{Posiciones $y$:};
+
+        \registroCuatro{}{0}{0}{0}{0}{0}{0}
+    \end{tikzpicture}
+\end{center}
+
 
 \subsubsection{Cálculo de u y v}
 Se opera sobre los doubles utilizando instrucciones SIMD, obteniedo los valores u y v, es decir, los valores x e y respectivamente de dónde conseguir el pixel a poner en la imágen fuente.
