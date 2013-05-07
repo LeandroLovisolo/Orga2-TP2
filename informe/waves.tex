@@ -104,7 +104,7 @@ Antes de entrar al ciclo, cargamos algunos valores en los registros XMM que nos 
   Teniendo en cuenta que este valor puede ser mayor a $255$ o menor a $0$ para empaquetar utilizamos la instrucción \asm{PACKUSDW} que empaqueta saturando enteros sin signo, dejando así en $255$ todos aquellos valores mayores al mismo y en $0$ a los valores negativos.
 \end{itemize}
 
-\subsubsection{Comparación con el lenguaje C}
+\subsubsection{Comparación con la implementación C}
 
 Mirando el pseudocódigo del algoritmo en C vemos para empezar que la cantidad de iteraciones es 8 veces mayor en C que en assembler al utilizar SIMD. ya que mientras que en C se procesa de a un solo pixel por vez en assembler se procede a procesar 8.
 
