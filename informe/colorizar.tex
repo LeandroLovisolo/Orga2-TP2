@@ -49,13 +49,15 @@ Cargamos los píxeles de cada fila del cuadrado de lado 3 como se indica a conti
 
 Contenido de los registros \xmm{1}, \xmm{2} y \xmm{3} en este instante:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{}{0}{0}
                           {$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}
                           {$R$}{$G$}{$B$}{$R$}{$G$}{$B$}{$R$}{$G$}{$B$}
     \end{tikzpicture}
-\end{center}
+    \caption{Contenido de cada registro luego de leer los píxeles vecinos.}
+\end{figure}
 
 El símbolo $\ast$ representa información de píxeles adyacentes que no nos interesa.
 
@@ -65,13 +67,15 @@ necesario, de forma tal que la parte alta de cada registro XMM esté alineada
 con el último pixel. En este caso el contenido de cada registro sería
 el siguiente:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{}{0}{0}
                           {$R$}{$G$}{$B$}{$R$}{$G$}{$B$}{$R$}{$G$}{$B$}
                           {$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}{$\ast$}
     \end{tikzpicture}
-\end{center}
+    \caption{Ajuste de fin de última fila.}
+\end{figure}
 
 Luego de realizar esta lectura, reacomodamos los bytes con \texttt{PSHUFB}
 para tenerlos en el mismo orden que en el caso normal, y procedemos normalmente.
@@ -96,7 +100,8 @@ Lo primero que hacemos es reordenar los bytes en \xmm{1}, \xmm{2} y \xmm{3}:
 La \textit{máscara} provista es tal que los bytes de los registros quedan
 reordeados de la siguiente forma:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{}{0}{0}
                           {0}{0}{0}{0}
@@ -104,7 +109,8 @@ reordeados de la siguiente forma:
                           {0}{$G$}{$G$}{$G$}
                           {0}{$B$}{$B$}{$B$}
     \end{tikzpicture}
-\end{center}
+    \caption{Reordenamiento de canales.}
+\end{figure}
 
 A continuación, buscamos los máximos byte a byte entre \xmm{1} y \xmm{2} y luego entre
 \xmm{1} y \xmm{3} de manera de obtener los máximos por canal ``columna a columna'':
@@ -118,7 +124,8 @@ La siguiente ilustración muestra lo que ocurre con los primeros 3 bytes de
 \xmm{1}, \xmm{2} y \xmm{3}, que contienen los valores del canal B para los
 tres píxeles de las filas 1, 2 y 3 respectivamente:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \foreach \i in {1, ..., 3}
         {
@@ -139,13 +146,15 @@ tres píxeles de las filas 1, 2 y 3 respectivamente:
         \draw (6,  -7) rectangle +(5, 1) +(2.5, 0.5) node{$max(B_{1b}, B_{2b}, B_{3b})$};        
         \draw (11, -7) rectangle +(5, 1) +(2.5, 0.5) node{$max(B_{1a}, B_{2a}, B_{3a})$};        
     \end{tikzpicture}
-\end{center}
+    \caption{Búsqueda de máximos columna a columna.}
+\end{figure}
 
 Lo mismo ocurre con el resto de los bytes que contienen los valores para los canales R y G.
 
 En este instante el contenido de \xmm{1} es el siguiente:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{\xmm{1}}{0}{0}
                           {0}{0}{0}{0}
@@ -153,7 +162,8 @@ En este instante el contenido de \xmm{1} es el siguiente:
                           {0}{$G_c$}{$G_b$}{$G_a$}
                           {0}{$B_c$}{$B_b$}{$B_a$}
     \end{tikzpicture}
-\end{center}
+    \caption{Resultados de la búsqueda de máximos columna a columna.}
+\end{figure}
 
 Donde $B_a = max(B_{1a}, B_{2a}, B_{3a})$, $\dots$, $R_c = max(R_{1c}, R_{2c}, R_{3c})$.
 
@@ -168,7 +178,8 @@ estos registros, para poder buscar los máximos en paralelo columna a columna co
 
 Gráficamente, podemos representar esta serie de pasos de la siguiente manera:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75, >=stealth]
         \registroDieciseis{\xmm{1}}{0}{10}
                           {0}{0}{0}{0}
@@ -218,7 +229,8 @@ Gráficamente, podemos representar esta serie de pasos de la siguiente manera:
                           {0}{0}{0}{$G^\ast$}
                           {0}{0}{0}{$B^\ast$}
     \end{tikzpicture}
-\end{center}
+    \caption{Extracción de triplas $(R, G, B)$.}
+\end{figure}
 
 Donde $R^\ast = max_R$, $G^\ast = max_G$ y $B^\ast = max_B$.
 
@@ -237,11 +249,13 @@ siguiente etapa.
 Procedemos a computar $\Phi_R$, $\Phi_G$ y $\Phi_B$ de forma secuencial,
 luego empaquetamos en \xmm{1} los valores hallados como se indica a continuación:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroCuatro{\xmm{1}}{0}{0}{$\ast$}{$\Phi_R$}{$\Phi_G$}{$\Phi_B$}
     \end{tikzpicture}
-\end{center}
+    \caption{Empaquetado de los valores $\Phi_{R,G,B}$ computados.}
+\end{figure}
 
 Empaquetamos $\Phi_{R,G,B}$ de esta manera para facilitar las
 comparaciones que realizaremos en la siguiente y última etapa.
@@ -274,11 +288,13 @@ Procedemos a hallar $I_{src_{R,G,B}}(i, j)$:
 En este instante \xmm{2} contiene el valor de cada canal del pixel original
 convertido a punto flotante como se ilustra a continuación:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroCuatro{\xmm{2}}{0}{0}{$\ast$}{$I_{src_R}$}{$I_{src_G}$}{$I_{src_B}$}
     \end{tikzpicture}
-\end{center}
+    \caption{Canales R, G, B convertidos a punto flotante.}
+\end{figure}
 
 Multiplicamos cada canal por el valor $\Phi$ correspondiente y buscamos
 el mínimo entre este producto y 255:
@@ -294,18 +310,21 @@ el mínimo entre este producto y 255:
 
 El contenido de de \xmm{1} es ahora:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroCuatro{\xmm{1}}{0}{0}{$\ast$}{$I_{dst_R}$}{$I_{dst_G}$}{$I_{dst_B}$}
     \end{tikzpicture}
-\end{center}
+    \caption{Valores del pixel destino por canal.}
+\end{figure}
 
 Si bien los valores $I_{dst_{R,G,B}}$ resultantes de la conversión de punto flotante a
 entero sin signo son de 32 bits, recordemos que nunca se exceden de 255, por lo que podemos
 asumir que nuestro dato está en el byte más bajo de cada entero, mientras que en los bytes
 restantes hay ceros. Entonces el contenido de \xmm{1} es:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{\xmm{1}}{0}{0}
                           {$\ast$}{$\ast$}{$\ast$}{$\ast$}
@@ -313,25 +332,28 @@ restantes hay ceros. Entonces el contenido de \xmm{1} es:
                           {0}{0}{0}{$I_{dst_G}$}
                           {0}{0}{0}{$I_{dst_B}$}
     \end{tikzpicture}
-\end{center}
+    \caption{Valores del pixel destino por canal representados cada uno en un único byte.}
+\end{figure}
 
 Reordenamos los bytes con \texttt{PSHUFB}:
 
-\begin{center}
+\begin{figure}[H]
+    \centering
     \begin{tikzpicture}[scale=0.75]
         \registroDieciseis{\xmm{1}}{0}{0}
                           {$\ast$}{$\ast$}{$\ast$}{$\ast$}
                           {0}{0}{0}{0}{0}{0}{0}{0}
                           {0}{$I_{dst_R}$}{$I_{dst_G}$}{$I_{dst_B}$}
     \end{tikzpicture}
-\end{center}
+    \caption{Construcción de la tira de bytes del pixel destino.}
+\end{figure}
 
 Para terminar, extraemos $I_{dst_R}$, $I_{dst_G}$ y $I_{dst_B}$ con \texttt{MOVD}
 y escribimos el pixel obtenido en la imagen destino.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Descripción del ciclo                                                     %%
+%% Comparación con la implementación C                                       %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
