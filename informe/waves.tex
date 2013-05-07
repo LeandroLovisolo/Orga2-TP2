@@ -67,7 +67,7 @@ Antes de entrar al ciclo, cargamos algunos valores en los registros XMM que nos 
   Para hacer esto, necesitamos los siguientes pasos:
   \begin{itemize}
     \item Copiamos el valor de los registros \xmm{5} y \xmm{6} a los registros \xmm{10} y \xmm{11} utilizando la instrucción \asm{MOVDQU}, obteniendo en ellos los valores del $0$ al $7$.
-    \item En un registro XMM se le pone en todos sus doublewords el valor de $j$ utilizando la instrucciones \asm{MOVQ} que mueve un doubleword en la parte baja del registro XMM y extiende el resto del registro con $0$ y SHUFPS que lo expande en las demás doublewords del registro. 
+    \item En un registro XMM se le pone en todos sus doublewords el valor de $j$ utilizando las instrucciones \asm{MOVQ} que mueve un doubleword en la parte baja del registro XMM y extiende el resto del registro con $0$ y SHUFPS que lo expande en las demás doublewords del registro. 
     \item Se lo codifica a punto flotante con la instrucción \asm{CVTDQ2PS}. 
     \item Luego se procede a sumarle a los registros \xmm{10} y \xmm{11} el registro donde empaquetamos el valor de $j$, para esto Utilizamos la instrucción \asm{ADDPS} que realiza la suma empaquetada de doubleword codificados como puntos flotantes.
   \end{itemize}
