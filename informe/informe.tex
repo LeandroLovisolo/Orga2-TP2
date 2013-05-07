@@ -272,6 +272,7 @@ En la siguiente sección analizamos cada una de las implementaciones y describim
 
 \input{rotar}
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resultados                                                                %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -289,11 +290,13 @@ Pendiente.
 
 \section{Conclusión}
 
-Podemos concluir, mediante los resultados obtenidos para cada filtro, que el uso de instrucciones SIMD mejora considerablemente el uso de ciclos y el tiempo, poniendo en evidencia el potencial de estas instrucciones.
+A lo largo de este trabajo obtuvimos mejoras de rendimiento significativas de manera consistente al hacer uso de instrucciones SIMD. 
 
-También pudimos observar desensamblando los binarios, el código ensamblador generador por gcc, el cuál puso en evidencia la gran cantidad de accesos a memoria que utiliza el código generado por C debido al uso de variables locales. Estos accesos que fueron evitados mediante el uso de registros en las versiones ASM, decrementaron en cada filtro el número de ciclos utilizados ya que la velocidad de operación sobre los registros es mucho más rápida que la de memoria.
+Identificamos dos posibles focos de aplicación para este juego de instrucciones: la paralelización de cómputos y el acceso a memoria de a bloques de datos contiguos. Observamos que en los casos que se logró acceder a más de un dato en memoria a la vez obtuvimos las ganancias de rendimiento más grandes.
 
-Por último, pudimos observar en la realización de las implementaciones en ASM que no todos los algoritmos son buenos candidatos para la parelización. Algoritmos como umbralizar o colorizar fueron buenos candidatos para la parelización pero otros como rotar, no tienen la posibilidad de aprovechar al máximo la paralelización.
+En aquellos casos en los que no fue posible acceder a más de un dato en memoria a la vez, aún así obtuvimos grandes mejoras de rendimiento al paralelizar el procesamiento de los datos leídos en forma secuencial, aunque más pequeñas en comparación con los casos en los que esto sí fue posible.
+
+Además, observamos que el código assembler generado por el compilador gcc (con nivel de optimización por defecto) produce una cantidad adicional de accesos a memoria al guardar en la pila los parámetros de las funciones y variables locales, que producen la penalidad de rendimiento correspondiente. Esto es especialmente evidente cuando el código C hace muchas llamadas a funciones, como en el caso de los filtros que invocan funciones auxiliares en el ciclo que itera sobre todos los píxeles de la imagen.
 
 
 \end{document}
