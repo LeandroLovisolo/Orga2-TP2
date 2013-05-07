@@ -10,6 +10,7 @@
 \usepackage{amsfonts}
 \usepackage{verbatim}
 \usepackage{graphicx}
+\usepackage{float}
 \usepackage{algorithmic}
 \usepackage{tikz}
 \usetikzlibrary{calc}
@@ -59,8 +60,38 @@
     \draw   (#2, #3) rectangle +(4, 1) +(2, 0.5) node{#4}
           ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#5}
           ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#6}
-          ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#7};            
+          ++(4, 0)   rectangle +(4, 1) +(2, 0.5) node{#7};          
 }
+
+\newcommand{\registroOcho}[9]{
+    \def\etiqueta{#1}
+    \def\x{#2}
+    \def\y{#3}
+    \def\aviii{#4}
+    \def\avii{#5}
+    \def\avi{#6}
+    \def\av{#7}
+    \def\aiv{#8}
+    \def\aiii{#9}
+    \registroOchoX    
+}
+\newcommand{\registroOchoX}[2]{
+    \def\aii{#1}
+    \def\ai{#2}
+    \ifthenelse{\equal{\etiqueta}{}}{}{
+        \draw (\x, {\y + 0.5}) node[anchor=east]{\etiqueta};
+    }
+    \filldraw[fill=white]
+        (\x, \y) rectangle +(2, 1) +(1, 0.5) node{\aviii}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\avii}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\avi}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\av}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\aiv}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\aiii}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\aii}
+        ++(2, 0) rectangle +(2, 1) +(1, 0.5) node{\ai};
+}
+
 
 % Uso: \registroDieciseis{etiqueta}{x}{y}{a16}{a15}{a14}...{a1}
 \newcommand{\registroDieciseis}[9]{
