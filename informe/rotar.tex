@@ -46,7 +46,7 @@ Decompilando la versión de rotar en c utilizando objdump -d -M intel -S rotar\_
 
 Un análisis sobre cómo opera el lenguaje C compilado con gcc nos muestra cómo las operaciones de punto flotante se realizan algunas en doubles y otras en floats y se las convierte luego a float (ya que se almacenaban en floats en la implementación en c), estas pueden verse en la figura 5.
 
-\begin{lstlisting}
+\begin{verbatim}
 u = cx + sqrt(2)/2.0 * (x - cx) - sqrt(2)/2.0 * (y - cy); //con u float
 movss  xmm1,DWORD PTR [rbp-0x40] ;Mueve el float cx a xmm1
 cvtps2pd xmm1,xmm1 ;Convierte de single a double
@@ -67,7 +67,7 @@ subsd  xmm0,xmm1 ;Resta de doubles
 unpcklpd xmm0,xmm0 ;Desempaqueto y interlazo floats
 cvtpd2ps xmm0,xmm0 ;Convierto de double a single para guardarlo
 movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
-\end{lstlisting}
+\end{verbatim}
 
 Figura 5: Código ensamblador generado por gcc en el cálculo de u \\
 
