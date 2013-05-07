@@ -157,7 +157,7 @@ Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 
 
 Para hacer un análisis fino, utilizamos la herramienta objdump (\texttt{objdump -d -M intel -S umbralizar\_c.o}) para obtener el resultado de la compilación mediante gcc.
 
-Destacamos de este análisis el uso contínuo de variables locales (almacenadas en el stack) y el cálculo de la posición en memoria y el acceso a esta cada vez que se quería realizar una comparación, algo evitable usando registros en ensamblador y que seguro impactaron en el rendimiento.
+Destacamos de este análisis el uso contínuo de variables locales (almacenadas en el stack) y el cálculo de la posición en memoria y el acceso a esta cada vez que se quería realizar una comparación, algo evitable usando registros en assembler y que seguro impactaron en el rendimiento.
 
 \begin{verbatim}
 if(src_matrix[y][x] < min) {
@@ -176,6 +176,6 @@ cmp    al,BYTE PTR [rbp-0x70] ;Realiza la comparación
 jae    c3 <umbralizar_c+0xc3>
 \end{verbatim}
 
-Cabe destacar que el lenguaje ensamblador, además del uso de las instrucciones SIMD, que nos permiten realizar cálculos simultáneamente otorgándonos una gran ventaja contra el código en C, también nos permite explotar los recursos al máximo, pudiendo obviar cálculos de más guardándolos para su posterior uso y utilizar registros que implican menos cantidad de accesos a memoria.
+Cabe destacar que el lenguaje assembler, además del uso de las instrucciones SIMD, que nos permiten realizar cálculos simultáneamente otorgándonos una gran ventaja contra el código en C, también nos permite explotar los recursos al máximo, pudiendo obviar cálculos de más guardándolos para su posterior uso y utilizar registros que implican menos cantidad de accesos a memoria.
 
 Estas ventajas, sumadas a los pocos accesos de memoria al poder escribir y leer de a 16 bytes son la causa del bajo tiempo de ejecución del filtro en assembler.
