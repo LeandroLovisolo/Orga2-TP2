@@ -8,7 +8,7 @@ El filtro umbralizar consiste en evaluar cada pixel de la imagen y asignarle un 
 \subsubsection{Descripción del ciclo}
 El filtro se divide en cinco etapas:
 \begin{enumerate}
-\item \textbf{Pre-ciclo:} Se crear ciertos registros que serán de utilidad en el ciclo
+\item \textbf{Pre-ciclo:} Se crean ciertos registros que serán de utilidad en el ciclo.
 \item \textbf{Inicio del ciclo:} Puesta en 0 del registro acumulador y obtención de máscara de mínimos.
 \item \textbf{Obtención de la máscara para pixeles mayores al máximo y aplicación:} Se consigue la máscara para los pixeles que superen al mayor y se aplica al acumulador.
 \item \textbf{Creación de la máscara para los pixeles ($min \leq pixel \leq max$):} Se arma la máscara a partir de una nueva comparación y máscaras anteriores.
@@ -29,7 +29,7 @@ También se calcula y se guarda en el registro rcx, la cantidad de pixeles que t
 \subsubsection{Inicio del ciclo}
 Al comienzo del ciclo se ponen en 0 los bytes del registro xmm8 que servirá como acumulador de los nuevos valores que tendrán los pixeles.
 
-Se guardan 16 bytes contiguos desde la imagen fuente en el registro xmm1, se busca cuáles son iguales al mínimo (aprovechando la instrucción pcmpeqb que realiza la comparación en los 16 bytes simultaneamente) y se guarda la máscara obtenida que se usará mas tarde.
+Se leen 16 bytes contiguos desde la imagen fuente en el registro xmm1 utilizando la instrucción movdqu, se busca cuáles son iguales al mínimo (aprovechando la instrucción pcmpeqb que realiza la comparación en los 16 bytes simultaneamente) y se guarda la máscara obtenida que se usará mas tarde.
 
 \subsubsection{Obtención de la máscara para pixeles mayores al máximo y aplicación}
 
@@ -41,8 +41,9 @@ Queriendo explotar al máximo las instrucciones SIMD, tratando de procesar en si
 \caption{Desempaquetado de los bytes a words para realizar comparaciones}
 \label{overflow}
 \end{figure}
+Se desempaquetan los 16 bytes en parte baja (primeros 8 bytes) y en parte alta convirtiendolos a words por medio de la instrucción punpcklbw.
 
-Se buscan los números que superen al máximo comparando la parte alta y baja con el registro xmm5 preparado al inicio del programa el cuál contiene el máximo en words empaquetadas. Utilizando pcmpgtw tanto en la parte baja como la alta, obtenemos una máscara que contiene en 0xFFFF las words mayores al máximo y en 0x0000 las demás. Empaquetamos la máscara relacionada a la parte baja y a la alta dejando en 255 sólo los bytes que sean mayores al máximo para luego sumarlos en el acumulador.
+Se buscan los números que superen al máximo comparando la parte alta y baja con el registro xmm5 preparado al inicio del programa, el cuál contiene el máximo en words empaquetadas. Utilizando pcmpgtw tanto en la parte baja como la alta, obtenemos una máscara que contiene en 0xFFFF las words mayores al máximo y en 0x0000 las demás. Empaquetamos, utilizando la instrucción packsswb, la máscara relacionada a la parte baja y a la alta, dejando en 255 sólo los bytes que sean mayores al máximo para luego sumarlos en el acumulador utilizando paddusb.
 
 \begin{figure}[H]
 \centering
@@ -59,9 +60,9 @@ Para conseguir la máscara, se aprovechó las máscaras previamente obtenidas (m
 \subsubsection{Aplicación de la máscara para ($min \leq pixel \leq max$) y fin del ciclo}
 Al ser necesaria un división y un truncamiento para el caso, se utilizaron single precision floats.
 
-Fue necesario desempaquetar aún más los pixeles para poder obtener los valores de estos en double words y poder convertirlos a single precision floats, precisión suficiente para los cálculos que también brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
+Fue necesario desempaquetar aún más los pixeles, utilizando punpcklwd, para poder obtener los valores de estos en double words, y poder convertirlos a single precision floats mediante la instrucción cvtdq2ps. Esta es precisión suficiente para los cálculos y además brinda la posibilidad realizar más operaciones sobre los pixeles simultanteamente que con doubles.
 
-Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca para realizar la función floor ($\lfloor \rfloor$) convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetamiento inicial (xmm2).
+Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1) y se los convierte a single presicion floats. Luego se los divide, utilizando divps, por el registro xmm6 el cuál contiene el valor Q empaquetado en single presicion floats calculado al inicio del programa. Se lo trunca utilizando cvttps2dq, para realizar la función floor ($\lfloor \rfloor$) convirtiendose en entero, se lo convierte otra vez a float y se lo termina multiplicando, utilizando mulps, por xmm6 otra vez para finalmente ser convertido a entero, obteniendo el valor correspondiente para cáda pixel. Se vuelve a empaquetar, utilizando la instrucción packusdw, obteniendose otra vez los valores nuevos de los pixeles en words y se repite la operación con la parte alta del desempaquetado inicial (xmm2).
 
 \begin{figure}[H]
 \centering
@@ -70,9 +71,9 @@ Se realiza el desempaquetado de la parte baja anteriormente desempaquetada (xmm1
 \label{overflow}
 \end{figure}
 
-Al finalizar, se empaquetan los dos registros resultantes para luego poder aplicarle la máscara anteriormente creada para el caso y sumar el valor obtenido al acumulador, dejando el valor correspondiente en los pixeles que cumplían con el caso.
+Al finalizar, se empaquetan los dos registros resultantes, mediante packuswb, para luego poder aplicarle la máscara anteriormente creada para el caso utilizando un pand y sumar simultaneamente con paddusb el valor obtenido al acumulador, dejando el valor correspondiente en los pixeles que cumplían con el caso.
 
-Por último, se copian los nuevos valores de los 16 bytes en la imagen destino y se incrementan los punteros de la imágen fuente y destino para la próxima iteración. También se resta nuestro contador de pixeles por procesar, se lo compara para ver si llegó al final, caso en el que termina la ejecución, o si quedan más e igual, caso en el que vuelve a ciclar, o si restan menos de 16 bytes por agarrar, dónde se vuelve para atrás los punteros de las imágenes para que queden 16 pixeles exactamente y se pueda realizar la última iteración.
+Por último, se copian los nuevos valores de los 16 bytes en la imagen destino utilizando movdqu y se incrementan los punteros de la imágen fuente y destino para la próxima iteración. También se resta nuestro contador de pixeles por procesar, se lo compara para ver si llegó al final, caso en el que termina la ejecución, o si quedan más e igual, caso en el que vuelve a ciclar, o si restan menos de 16 bytes por agarrar, dónde se vuelve para atrás los punteros de las imágenes para que queden 16 pixeles exactamente y se pueda realizar la última iteración.
 
 \subsubsection{Comparación con la implementación C}
 El ciclo en C hace escencialmente lo mismo que la implementación en assembler, pero esta lo hace de manera simultanea utilizando SIMD. 
