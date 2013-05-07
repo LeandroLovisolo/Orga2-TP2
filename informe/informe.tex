@@ -146,14 +146,6 @@
 
 %%%%%%%%%% Macros misceláneos - Inicio %%%%%%%%%%
 \newcommand{\xmm}[1]{\texttt{XMM#1}}
-\newcommand{\rax}{\texttt{RAX}}
-\newcommand{\rbx}{\texttt{RBX}}
-\newcommand{\rcx}{\texttt{RCX}}
-\newcommand{\rdx}{\texttt{RDX}}
-\newcommand{\rbp}{\texttt{RBP}}
-\newcommand{\rsp}{\texttt{RSP}}
-\newcommand{\reg}[1]{\texttt{R#1}}
-\newcommand{\asm}[1]{\texttt{\uppercase{#1}}}
 %%%%%%%%%% Macros misceláneos - Fin %%%%%%%%%%
 
 
@@ -288,7 +280,11 @@ Pendiente.
 
 \section{Conclusión}
 
-Pendiente.
+Podemos concluir, mediante los resultados obtenidos para cada filtro, que el uso de instrucciones SIMD mejora considerablemente el uso de ciclos y el tiempo, poniendo en evidencia el potencial de estas instrucciones.
+
+También pudimos observar desensamblando los binarios, el código ensamblador generador por gcc, el cuál puso en evidencia la gran cantidad de accesos a memoria que utiliza el código generado por C debido al uso de variables locales. Estos accesos que fueron evitados mediante el uso de registros en las versiones ASM, decrementaron en cada filtro el número de ciclos utilizados ya que la velocidad de operación sobre los registros es mucho más rápida que la de memoria.
+
+Por último, pudimos observar en la realización de las implementaciones en ASM que no todos los algoritmos son buenos candidatos para la parelización. Algoritmos como umbralizar o colorizar fueron buenos candidatos para la parelización pero otros como rotar, no tienen la posibilidad de aprovechar al máximo la paralelización.
 
 
 \end{document}
