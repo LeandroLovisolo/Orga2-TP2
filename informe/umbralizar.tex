@@ -116,7 +116,7 @@ Al utilizar un acumulador incialmente en 0 se pudo ahorrar el paso de comparar l
 Para conseguir la máscara, se aprovechó las máscaras previamente obtenidas (mayores al máximo e iguales al mínimo), por lo que sólo fue necesario buscar los números mayores al mínimo (haciendo un procedimiento similar al de la búsqueda del máximo), agregarle los números iguales al mínimo (mediante un \texttt{POR}) con la máscara creada al principio del ciclo y luego sacarle los mayores al máximo (mediante un \texttt{PXOR}) dejándome sólo los píxeles que cumplen esta condición.
 
 \subsubsection{Aplicación de la máscara para ($min \leq pixel \leq max$) y fin del ciclo}
-Al ser necesaria un división y un truncamiento para el caso, se utilizaron single precision floats.
+Al ser necesaria una división y un truncamiento para el caso, se utilizaron single precision floats.
 
 Fue necesario desempaquetar aún más los píxeles, utilizando \texttt{PUNPCKLWD}, para poder obtener los valores de estos en double words, y poder convertirlos a single precision floats mediante la instrucción \texttt{CVTDQ2PS}. Esta es precisión suficiente para los cálculos y además brinda la posibilidad realizar más operaciones sobre los píxeles simultáneamente que con doubles.
 
