@@ -1,11 +1,11 @@
-El filtro de Halftone consiste en dividir la imagen en bloques de $2 \times 2$, sumar el valor de los píxeles de cada bloque y reemplazar estos bloques por 4 bloques predefinidos dependiendo del rango en el que se encuentre dicha suma. 
+El filtro de Halftone consiste en dividir la imagen en bloques de $2 \times 2$, sumar el valor de los píxeles de cada bloque y reemplazar estos bloques por $4$ bloques predefinidos dependiendo del rango en el que se encuentre dicha suma. 
 
 Sea $t$ la suma total del valor de los píxeles de un bloque.
 
 \begin{itemize}
 \item Si $t \leq 205$ reemplazamos el bloque por otro todo negro.
 \item Si $205 \leq t < 410$ reemplazamos el bloque por otro todo negro salvo la esquina superior izquierda, la cual es blanca.
-\item Si $410 \leq t < 615$ reemplazamos el bloque por otro que tiene la esquina superior izquierda y la inferior derecha blancas y las restantes 2 negras.
+\item Si $410 \leq t < 615$ reemplazamos el bloque por otro que tiene la esquina superior izquierda y la inferior derecha blancas y las restantes $2$ negras.
 \item Si $615 \leq t < 820$ reemplazamos el bloque por otro todo blanco salvo la esquina superior derecha, la cual es negra.
 \item Si $820 \leq t$ reemplazamos el bloque por otro todo blanco.
 \end{itemize}
@@ -17,7 +17,7 @@ Sea $t$ la suma total del valor de los píxeles de un bloque.
   \IF{el ancho de la imagen es impar}
     \STATE decrementar en uno el ancho de la imagen.
   \ENDIF
-  \IF{la altura la imagen es impar}
+  \IF{la altura de la imagen es impar}
     \STATE decrementar en uno la altura de la imagen.
   \ENDIF
   \FOR{$i \leftarrow 1$ to $alto$}
@@ -62,7 +62,7 @@ Sea $t$ la suma total del valor de los píxeles de un bloque.
 
 \subsubsection{Utilización de SIMD en paralelización de procesos:}
 
-La idea de utilizar assembler fue principalmente aprovechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro xmm de $128$ bits entran $16$ bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte, podríamos pensar en trabajar con 16 píxeles de la imagen de manera simultanea. 
+La idea de utilizar assembler fue principalmente aprovechar mejor las operaciones existentes de SIMD, teniendo en cuenta que en un registro $xmm$ de $128$ bits entran $16$ bytes y que cada pixel de una imagen en escala de grises ocupa exactamente un byte, podríamos pensar en trabajar con $16$ píxeles de la imagen de manera simultanea. 
 
 
 \subsubsection{Consideraciones al utilizar SIMD:}
