@@ -24,10 +24,10 @@ El filtro se divide en cinco etapas:
 
 Para optimizar el procesamiento dentro del ciclo, se calcula y se guarda en registros XMM al inicio del programa:
 \begin{itemize}
-  \item \xmm{12} $\Rightarrow$ Contiene 16 bytes packed con el mínimo
-  \item \xmm{11} $\Rightarrow$ Contiene el mínimo packed en words
-  \item \xmm{5} $\Rightarrow$ Contiene el máximo packed en words
-  \item \xmm{6} $\Rightarrow$ Contiene la representación flotante de Q packed
+  \item \xmm{12} $\leftarrow$ Contiene 16 bytes packed con el mínimo
+  \item \xmm{11} $\leftarrow$ Contiene el mínimo packed en words
+  \item \xmm{5}  $\leftarrow$ Contiene el máximo packed en words
+  \item \xmm{6}  $\leftarrow$ Contiene la representación flotante de Q packed
 \end{itemize}
 
 También se calcula y se guarda en el registro \rcx, la cantidad de píxeles que tiene la imagen, información que se utilizará para conocer cuántos píxeles faltan por procesar en cada iteración.
