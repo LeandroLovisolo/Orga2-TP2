@@ -37,18 +37,18 @@ Este ciclo interno se encarga de poner en dos registros temporales los valores d
         \registroCuatro{}{0}{0}{0}{0}{0}{0}
     \end{tikzpicture}
 \end{center}
-
+Ejemplo del estado de los registros xmm asignados para x e y en la primera iteración del ciclo principal
 
 \subsubsection{Cálculo de u y v}
 Se opera sobre los doubles utilizando instrucciones SIMD, obteniedo los valores u y v, es decir, los valores x e y respectivamente de dónde conseguir el pixel a poner en la imágen fuente.
 
 Haciendo un análisis de las ecuaciones, decidimos realizar los cálculos de u y v de la siguiente manera:
 \begin{itemize}
-\item Dividir y calcular u como u1 y u2: u1 = cx + (sqrt(2)/2)*(x-cx) y u2 = -(sqrt(2)/2)*(y-cy)
-\item Dividir y calcular v como v1 y v2: v1 = cy + (sqrt(2)/2)*(x-cx) y v2 = +(sqrt(2)/2)*(y-cy)
+\item Dividir y calcular u como u1 y u2: u1 = cx + ($\sqrt[2]{2}/2$)*(x-cx) y u2 = -($\sqrt[2]{2}/2$)*(y-cy)
+\item Dividir y calcular v como v1 y v2: v1 = cy + ($\sqrt[2]{2}/2$)*(x-cx) y v2 = +($\sqrt[2]{2}/2$)*(y-cy)
 \end{itemize}
 
-De esta manera se puede calcular con instrucciones SIMD, utilizando subpd, (x-cx), multiplicandolo después con mulpd por (sqrt(2)/2) y utilizando luego este resultado para formar v1 y u1 con la suma de cy y cx respectivamente. Por último calcular u2 y v2, (sqrt(2)/2)*(y-cy), de manera similar, restándolo a u1 y sumándolo a v1.
+De esta manera se puede calcular con instrucciones SIMD, utilizando subpd, (x-cx), multiplicandolo después con mulpd por ($\sqrt[2]{2}/2$) y utilizando luego este resultado para formar v1 y u1 con la suma de cy y cx respectivamente. Por último calcular u2 y v2, ($\sqrt[2]{2}/2$)*(y-cy), de manera similar, restándolo a u1 y sumándolo a v1.
 
 Al finalizar el cálculo se convierten de doubles a floats utilizando cvtpd2ps, de floats a enteros con cvttps2dq y se shiftean hacia la izquierda los registros con las partes altas de x y de y (ahora u y v), mediante pslldq, para luego agregarles en la parte baja los valores de las partes bajas calculados utilizando la instrucción por, dejando 4 double words packed con u's y 4 double words packed con v's.
 
@@ -64,39 +64,21 @@ Terminado el ciclo de almacenamiento, se agregan los valores de estos 4 bytes al
 En el final de cada iteración del ciclo princiapl, se checkea la posición de la imagen en la que se está (por si ya se ha terminado de recorrerla o se es necesario correr para atrás para agarrar 16 pixeles exactos) y si se ha llenado el acumulador. Si el acumulador se llena (habiendo pasado 4 ciclos) se escriben los 16 bytes a la imagen destino. Este mecanismo en el cuál se van almacenando los pixeles tiene como sentido economizar la escritura de datos.
 
 \subsubsection{Comparación con la implementación C}
-Cómo el algoritmo no es muy paralelizable, ambas implementaciones comparten acciones cómo la comparacion individual y la lectura en memoria de cada pixel. Sin embargo, se diferencian a hora de calcular las posiciones dónde están los valores de los pixeles a poner en la imagen destino, que se realizan utilizando instrucciones SIMD de a 2 doubles en simultaneo contra las operaciones secuenciales que realiza el lenguaje en C. También, la escritura a memoria se hace de a 16 bytes por el lado del programa en ensamblador contra la versión en C, ahorrando ciclos.
+Cómo el algoritmo no es muy paralelizable, ambas implementaciones comparten varias características pero difieren en algunos casos, a continuación se detalla.
 
-Decompilando la versión de rotar en c utilizando objdump -d -M intel -S rotar\_c.o obtuvimos el código ensamblador armado por gcc.
+Operaciones realizadas en la implementación en C para 16 bytes:
+\begin{itemize}
+\item Se realizan 2x16 accesos a memoria, 16 para la lectura de un pixel determinado en la imágen fuente y otros 16 para la escritura en la imágen destino.
+\item Se realiza el cálculo relacionado a u y v de manera secuencial.
+\item Se realiza el checkeo de las restricciones para u y v de manera secuencial.
+\end{itemize}
 
-
-Un análisis sobre cómo opera el lenguaje C compilado con gcc nos muestra cómo las operaciones de punto flotante se realizan algunas en doubles y otras en floats y se las convierte luego a float (ya que se almacenaban en floats en la implementación en c), estas pueden verse en la figura 5.
-
-\begin{verbatim}
-u = cx + sqrt(2)/2.0 * (x - cx) - sqrt(2)/2.0 * (y - cy); //con u float
-movss  xmm1,DWORD PTR [rbp-0x40] ;Mueve el float cx a xmm1
-cvtps2pd xmm1,xmm1 ;Convierte de single a double
-cvtsi2ss xmm0,DWORD PTR [rbp-0x44] ;Convierto entero a float
-subss  xmm0,DWORD PTR [rbp-0x40] ;Resto single float
-unpcklps xmm0,xmm0 ;Desempaqueto y interlazo floats
-cvtps2pd xmm0,xmm0 ;Convierte de single float a doubles
-movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
-mulsd  xmm0,xmm2 ;Muevo double
-addsd  xmm0,xmm1 ;Sumo double
-cvtsi2ss xmm1,DWORD PTR [rbp-0x48] ;Convierto entero a float
-subss  xmm1,DWORD PTR [rbp-0x3c] ;Resto single float
-unpcklps xmm1,xmm1 ;Desempaqueto y interlazo floats
-cvtps2pd xmm1,xmm1 ;Convierte de single a double
-movsd  xmm2,QWORD PTR [rip+0x0] ;Muevo double
-mulsd  xmm1,xmm2 ;Multiplicacion de doubles
-subsd  xmm0,xmm1 ;Resta de doubles
-unpcklpd xmm0,xmm0 ;Desempaqueto y interlazo floats
-cvtpd2ps xmm0,xmm0 ;Convierto de double a single para guardarlo
-movss  DWORD PTR [rbp-0x38],xmm0 ;Guardo en float u
-\end{verbatim}
-
-Figura 5: Código ensamblador generado por gcc en el cálculo de u \\
-
-Es también notable como el lenguaje ensamblador nos permite acomodar las operaciones para realizar cálculos de la manera más optima posible, en especial utilizando SIMD para ahorrar ciclos.
+Operaciones realizadas en la implementación en ASM para 16 bytes:
+\begin{itemize}
+\item Se realizan 16 accesos a memoria para la lectura de un pixel determinado en la imágen fuente y 1 acceso utilizando movqdu para la escritura en la imágen destino.
+\item Se realiza el cálculo relacionado a u y v utilizando instrucciones SIMD pudiendo realizar los cálculos con 2 datos simultáneos realizando en cáda ciclo 4 cálculos de u y v y en cada ciclo principal el cálculo de los 16 bytes.
+\item Se realiza el checkeo de las restricciones para u y v de manera secuencial.
+\end{itemize}
 
 \subsubsection{Rendimiento}
 Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 iteraciones de ambas implementaciones con una imagen cuadrada de lado 512.
@@ -110,3 +92,7 @@ Observamos las siguientes cantidades de ciclos y ticks de reloj al realizar 100 
         \hline
     \end{tabular}
 \end{center}
+
+Es notable la diferencia en velocidad con los otros filtros. Este resultado pone en evidencia que al poder paralelizarse en menor manera que otros filtros, la velocidad y los ciclos aumentan considerablemente.
+
+Cabe destacar que la diferencia de velocidad obtenida en comparación con la implementación en C no sólo proviene de el uso de instrucciones SIMD para el cálculo con doubles o el acceso a memoria usando movqdu, si no que también influyen el uso contínuo de registros en vez de accesos memoría para almacenar datos (algo que C hace) y la posibilidad que otorga el lenguaje ensamblador de ordenar el código para poder optimizar al máximo los algoritmos.
