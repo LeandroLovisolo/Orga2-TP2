@@ -7,8 +7,8 @@ cuadrado en su posición opuesta respecto de la imagen original.
 Se ilustra a continuación el ciclo de la implementación C:
 
 \begin{pseudocodigo}
-    \FOR{$y = 1$ to $n$}
-        \FOR{$x = 1$ to $n$}
+    \FOR{$y = 1$ to $alto$}
+        \FOR{$x = 1$ to $ancho$}
             \STATE $dst[alto - n + y][ancho - n + x]$ $\leftarrow$ $src[y][x]$ \COMMENT{copio esquina superior izquierda}
             \STATE $dst[alto - n + y][x]$ $\leftarrow$ $src[y][ancho - n + x]$ \COMMENT{copio esquina superior derecha}
             \STATE $dst[y][ancho - n + x]$ $\leftarrow$ $src[alto - n + y][x]$ \COMMENT{copio esquina inferior izquierda}
@@ -28,8 +28,8 @@ esta diferencia a $x$, de manera que el siguiente ciclo opere exactamente con lo
 El pseudocódigo a continuación describe el ciclo completo de la implementación assembler:
 
 \begin{pseudocodigo}
-    \FOR{$y = 1$ to $n$}
-        \FOR{$x = 1$ to $n$}
+    \FOR{$y = 1$ to $alto$}
+        \FOR{$x = 1$ to $ancho$}
             \IF{$|n - x| < 16$}
                 \STATE $x$ $\leftarrow$ $x - |n - x|$
             \ENDIF
