@@ -148,7 +148,7 @@ rotar_asm:
         addpd xmm10, xmm9 ;Le sumo a v1 parte alta (sqrt(2)/2)*(y-cy)
         ;############################################################################################################
         ;Trunco y convierto a int
-        ;Para que funcione hay que hacer magia, hacer todas las cuentas en double, pasarlas a float
+        ;Para que funcione hay que hacer todas las cuentas en double, pasarlas a float
         ;y después pasarlas a entero
         ;############################################################################################################
         ;Trabajo con X's
