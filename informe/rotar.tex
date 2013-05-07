@@ -19,9 +19,9 @@ El filtro se divide en cinco etapas:
 \subsubsection{Pre-ciclo principal}
 Para optimizar la implementación, se realiza el cálculo de cx, cy y $\sqrt[2]{2}/2$ al inicio del programa. Estos valores se almacenan en registros como doubles empaquetados utilizando \texttt{SHUFPS} para tener cáda valor en double words y luego convertirlos a doubles con \texttt{CVTDQ2PD}.
 
-También se ponen en 0 los registros r11 y r15 que servirán para establecer en que posición x e y respectivamente se encuentra en la imagen.
+También se ponen en 0 los registros \reg{11} y \reg{15} que servirán para establecer en que posición x e y respectivamente se encuentra en la imagen.
 
-El ciclo principal comienza poniendo en 0 mediante la instrucción \texttt{POR} el registro xmm7 el cuál se encargará de acumular los pixeles hasta llenarse sus 16 bytes.
+El ciclo principal comienza poniendo en 0 mediante la instrucción \texttt{POR} el registro \xmm{7} el cuál se encargará de acumular los pixeles hasta llenarse sus 16 bytes.
 
 \subsubsection{Ciclo para obtención de posiciones}
 Este ciclo interno se encarga de poner en dos registros temporales los valores de las posiciones x e y de cuatro pixeles sucesivos. Una vez realizado esto, para poder trabajar con los cuatro pixeles utilizando doubles, se mueve el contenido de estos registros a registros \texttt{XMM} dónde se los convierte, utilizando \texttt{CVTDQ2PD} y se los almacena en cuatro registros \texttt{XMM}, dos con los dos doubles más bajos y altos de las coordenadas x y dos con los dos doubles más bajos y altos de las coordenadas y.
@@ -37,7 +37,7 @@ Este ciclo interno se encarga de poner en dos registros temporales los valores d
         \registroCuatro{}{0}{0}{0}{0}{0}{0}
     \end{tikzpicture}
 \end{center}
-Ejemplo del estado de los registros XMM asignados para x e y en la primera iteración del ciclo principal
+Ejemplo del estado de los registros \texttt{XMM} asignados para x e y en la primera iteración del ciclo principal
 
 \subsubsection{Cálculo de u y v}
 Se opera sobre los doubles utilizando instrucciones SIMD, obteniedo los valores u y v, es decir, los valores x e y respectivamente de dónde conseguir el pixel a poner en la imágen fuente.
@@ -53,7 +53,7 @@ De esta manera se puede calcular con instrucciones SIMD, utilizando \texttt{SUBP
 Al finalizar el cálculo se convierten de doubles a floats utilizando \texttt{CVTPD2PS}, de floats a enteros con \texttt{CVTTPS2DQ} y se shiftean hacia la izquierda los registros con las partes altas de x y de y (ahora u y v), mediante \texttt{PSLLQD}, para luego agregarles en la parte baja los valores de las partes bajas calculados utilizando la instrucción \texttt{POR}, dejando 4 double words packed con u's y 4 double words packed con v's.
 
 \subsubsection{Ciclo de almacenamiento de los valores correspondientes a las posiciones procesadas}
-Antes de empezar este ciclo, se pone el registro rbp en 0 mediante un \texttt{XOR} ya que servirá como acumulador temporal del ciclo.
+Antes de empezar este ciclo, se pone el registro \rbp en 0 mediante un \texttt{XOR} ya que servirá como acumulador temporal del ciclo.
 
 Se pasa a un pequeño ciclo el cuál mediante \texttt{MOVD} y \texttt{PSLLDQ} (que realiza un shift a la izquierda) saca de los registros las double words calculadas en el paso anterior con las u's y v's y checkea de a una las restricciones del cálculo para u y v, para luego colocar en el caso de que las cumplan, en el acumulador del ciclo, el valor del pixel que tenga en la posición en la imagen fuente (el cuál es leido desde esta) y si no, un 0.
 
